@@ -1,0 +1,41 @@
+{
+  "name": "mcp-kanban",
+  "version": "0.0.6",
+  "description": "MCP server for kanban board",
+  "license": "MIT",
+  "author": "Brad Risse",
+  "homepage": "https://github.com/bradrisse/mcp-kanban",
+  "bugs": "https://github.com/bradrisse/mcp-kanban/issues",
+  "type": "module",
+  "bin": {
+    "mcp-server-kanban": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && shx chmod +x dist/*.js",
+    "watch": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testMatch='**/tests/**/*.test.ts'"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22",
+    "@types/node-fetch": "^2.6.12",
+    "express": "^4.21.2",
+    "node-fetch": "^3.3.2",
+    "universal-user-agent": "^7.0.2",
+    "zod": "^3.22.4",
+    "zod-to-json-schema": "^3.23.5"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "shx": "^0.3.4",
+    "ts-jest": "^29.2.6",
+    "typescript": "^5.6.2"
+  }
+}
