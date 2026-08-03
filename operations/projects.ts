@@ -144,6 +144,7 @@ export async function getProject(id: string) {
  * Creates a new project
  *
  * @param {string} name - The name of the project to create
+ * @param {"private" | "shared"} [type="private"] - The type of the project (default: "private")
  * @returns {Promise<object>} The created project
  * @throws {Error} If creating the project fails
  */

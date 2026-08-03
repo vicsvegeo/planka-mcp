@@ -299,8 +299,7 @@ export async function deleteLabel(id: string) {
  */
 export async function addLabelToCard(cardId: string, labelId: string) {
   try {
-    // The correct endpoint is /api/cards/{cardId}/labels with labelId in the body
-    await plankaRequest(`/api/cards/${cardId}/labels`, {
+    await plankaRequest(`/api/cards/${cardId}/card-labels`, {
       method: "POST",
       body: {
         labelId,
@@ -326,8 +325,7 @@ export async function addLabelToCard(cardId: string, labelId: string) {
  */
 export async function removeLabelFromCard(cardId: string, labelId: string) {
   try {
-    // The correct endpoint is /api/cards/{cardId}/labels/{labelId}
-    await plankaRequest(`/api/cards/${cardId}/labels/${labelId}`, {
+    await plankaRequest(`/api/cards/${cardId}/card-labels/labelId:${labelId}`, {
       method: "DELETE",
     });
 

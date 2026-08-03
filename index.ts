@@ -176,7 +176,7 @@ server.tool(
 
       case "comment":
         if (id) {
-          result = await comments.getComment(id);
+          result = await comments.getComment(id, args.cardId);
         } else {
           if (!args.cardId) err("list", resourceType, "cardId");
           result = await comments.getComments(args.cardId!);
