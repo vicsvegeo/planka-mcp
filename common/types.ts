@@ -14,7 +14,7 @@ export const PlankaUserSchema = z.object({
 export const PlankaProjectSchema = z.object({
   id: z.string(),
   name: z.string(),
-  background: z.string().nullable(),
+  background: z.any().optional().nullable(),
   createdAt: z.string(),
   updatedAt: z.string().nullable(),
 });
@@ -106,7 +106,7 @@ export const PlankaBoardMembershipSchema = z.object({
   id: z.string(),
   boardId: z.string(),
   userId: z.string(),
-  role: z.enum(["editor", "admin"]),
+  role: z.enum(["editor", "viewer"]),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
