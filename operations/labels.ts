@@ -14,31 +14,48 @@ import { PlankaLabelSchema } from "../common/types.js";
  * Valid color options for labels in Planka
  */
 export const VALID_LABEL_COLORS = [
-    "berry-red",
-    "pumpkin-orange",
-    "lagoon-blue",
-    "pink-tulip",
-    "light-mud",
-    "orange-peel",
-    "bright-moss",
-    "antique-blue",
-    "dark-granite",
-    "lagune-blue",
-    "sunny-grass",
-    "morning-sky",
-    "light-orange",
-    "midnight-blue",
-    "tank-green",
-    "gun-metal",
-    "wet-moss",
-    "red-burgundy",
-    "light-concrete",
-    "apricot-red",
-    "desert-sand",
-    "navy-blue",
-    "egg-yellow",
-    "coral-green",
-    "light-cocoa",
+  "muddy-grey",
+  "autumn-leafs",
+  "morning-sky",
+  "antique-blue",
+  "egg-yellow",
+  "desert-sand",
+  "dark-granite",
+  "fresh-salad",
+  "lagoon-blue",
+  "midnight-blue",
+  "light-orange",
+  "pumpkin-orange",
+  "light-concrete",
+  "sunny-grass",
+  "navy-blue",
+  "lilac-eyes",
+  "apricot-red",
+  "orange-peel",
+  "silver-glint",
+  "bright-moss",
+  "deep-ocean",
+  "summer-sky",
+  "berry-red",
+  "light-cocoa",
+  "grey-stone",
+  "tank-green",
+  "coral-green",
+  "sugar-plum",
+  "pink-tulip",
+  "shady-rust",
+  "wet-rock",
+  "wet-moss",
+  "turquoise-sea",
+  "lavender-fields",
+  "piggy-red",
+  "light-mud",
+  "gun-metal",
+  "modern-green",
+  "french-coast",
+  "sweet-lilac",
+  "red-burgundy",
+  "pirate-gold",
 ] as const;
 
 /**
@@ -49,10 +66,10 @@ export const VALID_LABEL_COLORS = [
  * @property {number} [position] - The position of the label in the board (default: 65535)
  */
 export const CreateLabelSchema = z.object({
-    boardId: z.string().describe("Board ID"),
-    name: z.string().describe("Label name"),
-    color: z.enum(VALID_LABEL_COLORS).describe("Label color"),
-    position: z.number().optional().describe("Label position (default: 65535)"),
+  boardId: z.string().describe("Board ID"),
+  name: z.string().describe("Label name"),
+  color: z.enum(VALID_LABEL_COLORS).describe("Label color"),
+  position: z.number().optional().describe("Label position (default: 65535)"),
 });
 
 /**
@@ -60,11 +77,11 @@ export const CreateLabelSchema = z.object({
  * @property {string} boardId - The ID of the board to get labels from
  */
 export const GetLabelsSchema = z.object({
-    boardId: z.string().describe("Board ID"),
+  boardId: z.string().describe("Board ID"),
 });
 
 export const GetLabelSchema = z.object({
-    id: z.string().describe("Label ID"),
+  id: z.string().describe("Label ID"),
 });
 
 /**
@@ -75,10 +92,10 @@ export const GetLabelSchema = z.object({
  * @property {number} [position] - The new position for the label
  */
 export const UpdateLabelSchema = z.object({
-    id: z.string().describe("Label ID"),
-    name: z.string().optional().describe("Label name"),
-    color: z.enum(VALID_LABEL_COLORS).optional().describe("Label color"),
-    position: z.number().optional().describe("Label position"),
+  id: z.string().describe("Label ID"),
+  name: z.string().optional().describe("Label name"),
+  color: z.enum(VALID_LABEL_COLORS).optional().describe("Label color"),
+  position: z.number().optional().describe("Label position"),
 });
 
 /**
@@ -86,7 +103,7 @@ export const UpdateLabelSchema = z.object({
  * @property {string} id - The ID of the label to delete
  */
 export const DeleteLabelSchema = z.object({
-    id: z.string().describe("Label ID"),
+  id: z.string().describe("Label ID"),
 });
 
 /**
@@ -95,8 +112,8 @@ export const DeleteLabelSchema = z.object({
  * @property {string} labelId - The ID of the label to add to the card
  */
 export const AddLabelToCardSchema = z.object({
-    cardId: z.string().describe("Card ID"),
-    labelId: z.string().describe("Label ID"),
+  cardId: z.string().describe("Card ID"),
+  labelId: z.string().describe("Label ID"),
 });
 
 /**
@@ -105,8 +122,8 @@ export const AddLabelToCardSchema = z.object({
  * @property {string} labelId - The ID of the label to remove from the card
  */
 export const RemoveLabelFromCardSchema = z.object({
-    cardId: z.string().describe("Card ID"),
-    labelId: z.string().describe("Label ID"),
+  cardId: z.string().describe("Card ID"),
+  labelId: z.string().describe("Label ID"),
 });
 
 // Type exports
@@ -129,29 +146,29 @@ export type AddLabelToCardOptions = z.infer<typeof AddLabelToCardSchema>;
  * Type definition for removing a label from a card options
  */
 export type RemoveLabelFromCardOptions = z.infer<
-    typeof RemoveLabelFromCardSchema
+  typeof RemoveLabelFromCardSchema
 >;
 
 // Response schemas
 const LabelsResponseSchema = z.object({
-    items: z.array(PlankaLabelSchema),
-    included: z.record(z.any()).optional(),
+  items: z.array(PlankaLabelSchema),
+  included: z.record(z.any()).optional(),
 });
 
 const LabelResponseSchema = z.object({
-    item: PlankaLabelSchema,
-    included: z.record(z.any()).optional(),
+  item: PlankaLabelSchema,
+  included: z.record(z.any()).optional(),
 });
 
 const CardLabelResponseSchema = z.object({
-    item: z.object({
-        id: z.string(),
-        cardId: z.string(),
-        labelId: z.string(),
-        createdAt: z.string(),
-        updatedAt: z.string().nullable(),
-    }),
-    included: z.record(z.any()).optional(),
+  item: z.object({
+    id: z.string(),
+    cardId: z.string(),
+    labelId: z.string(),
+    createdAt: z.string(),
+    updatedAt: z.string().nullable(),
+  }),
+  included: z.record(z.any()).optional(),
 });
 
 // Function implementations
@@ -167,27 +184,27 @@ const CardLabelResponseSchema = z.object({
  * @throws {Error} If the label creation fails
  */
 export async function createLabel(options: CreateLabelOptions) {
-    try {
-        const response = await plankaRequest(
-            `/api/boards/${options.boardId}/labels`,
-            {
-                method: "POST",
-                body: {
-                    name: options.name,
-                    color: options.color,
-                    position: options.position,
-                },
-            },
-        );
-        const parsedResponse = LabelResponseSchema.parse(response);
-        return parsedResponse.item;
-    } catch (error) {
-        throw new Error(
-            `Failed to create label: ${
-                error instanceof Error ? error.message : String(error)
-            }`,
-        );
-    }
+  try {
+    const response = await plankaRequest(
+      `/api/boards/${options.boardId}/labels`,
+      {
+        method: "POST",
+        body: {
+          name: options.name,
+          color: options.color,
+          position: options.position ?? 65535,
+        },
+      },
+    );
+    const parsedResponse = LabelResponseSchema.parse(response);
+    return parsedResponse.item;
+  } catch (error) {
+    throw new Error(
+      `Failed to create label: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 }
 
 /**
@@ -197,33 +214,32 @@ export async function createLabel(options: CreateLabelOptions) {
  * @returns {Promise<Array<object>>} Array of labels in the board
  */
 export async function getLabels(boardId: string) {
-    try {
-        // Get the board which includes labels in the response
-        const response = await plankaRequest(`/api/boards/${boardId}`);
+  try {
+    // Get the board which includes labels in the response
+    const response = await plankaRequest(`/api/boards/${boardId}`);
 
-        // Check if the response has the expected structure
-        if (
-            response &&
-            typeof response === "object" &&
-            "included" in response &&
-            response.included &&
-            typeof response.included === "object" &&
-            "labels" in (response.included as Record<string, unknown>)
-        ) {
-            // Get the labels from the included property
-            const labels =
-                (response.included as Record<string, unknown>).labels;
-            if (Array.isArray(labels)) {
-                return labels;
-            }
-        }
-
-        // If we can't find labels in the expected format, return an empty array
-        return [];
-    } catch (error) {
-        // If all else fails, return an empty array
-        return [];
+    // Check if the response has the expected structure
+    if (
+      response &&
+      typeof response === "object" &&
+      "included" in response &&
+      response.included &&
+      typeof response.included === "object" &&
+      "labels" in (response.included as Record<string, unknown>)
+    ) {
+      // Get the labels from the included property
+      const labels = (response.included as Record<string, unknown>).labels;
+      if (Array.isArray(labels)) {
+        return labels;
+      }
     }
+
+    // If we can't find labels in the expected format, return an empty array
+    return [];
+  } catch (error) {
+    // If all else fails, return an empty array
+    return [];
+  }
 }
 
 /**
@@ -234,23 +250,23 @@ export async function getLabels(boardId: string) {
  * @returns {Promise<object>} The updated label
  */
 export async function updateLabel(
-    id: string,
-    options: Partial<Omit<CreateLabelOptions, "boardId">>,
+  id: string,
+  options: Partial<Omit<CreateLabelOptions, "boardId">>,
 ) {
-    try {
-        const response = await plankaRequest(`/api/labels/${id}`, {
-            method: "PATCH",
-            body: options,
-        });
-        const parsedResponse = LabelResponseSchema.parse(response);
-        return parsedResponse.item;
-    } catch (error) {
-        throw new Error(
-            `Failed to update label: ${
-                error instanceof Error ? error.message : String(error)
-            }`,
-        );
-    }
+  try {
+    const response = await plankaRequest(`/api/labels/${id}`, {
+      method: "PATCH",
+      body: options,
+    });
+    const parsedResponse = LabelResponseSchema.parse(response);
+    return parsedResponse.item;
+  } catch (error) {
+    throw new Error(
+      `Failed to update label: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 }
 
 /**
@@ -260,18 +276,18 @@ export async function updateLabel(
  * @returns {Promise<{success: boolean}>} Success indicator
  */
 export async function deleteLabel(id: string) {
-    try {
-        await plankaRequest(`/api/labels/${id}`, {
-            method: "DELETE",
-        });
-        return { success: true };
-    } catch (error) {
-        throw new Error(
-            `Failed to delete label: ${
-                error instanceof Error ? error.message : String(error)
-            }`,
-        );
-    }
+  try {
+    await plankaRequest(`/api/labels/${id}`, {
+      method: "DELETE",
+    });
+    return { success: true };
+  } catch (error) {
+    throw new Error(
+      `Failed to delete label: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 }
 
 /**
@@ -282,26 +298,23 @@ export async function deleteLabel(id: string) {
  * @returns {Promise<object>} The created card-label relationship
  */
 export async function addLabelToCard(cardId: string, labelId: string) {
-    try {
-        // The correct endpoint is /api/cards/{cardId}/labels with labelId in the body
-        await plankaRequest(
-            `/api/cards/${cardId}/labels`,
-            {
-                method: "POST",
-                body: {
-                    labelId,
-                },
-            },
-        );
+  try {
+    // The correct endpoint is /api/cards/{cardId}/labels with labelId in the body
+    await plankaRequest(`/api/cards/${cardId}/labels`, {
+      method: "POST",
+      body: {
+        labelId,
+      },
+    });
 
-        return { success: true };
-    } catch (error) {
-        throw new Error(
-            `Failed to add label to card: ${
-                error instanceof Error ? error.message : String(error)
-            }`,
-        );
-    }
+    return { success: true };
+  } catch (error) {
+    throw new Error(
+      `Failed to add label to card: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 }
 
 /**
@@ -312,21 +325,18 @@ export async function addLabelToCard(cardId: string, labelId: string) {
  * @returns {Promise<{success: boolean}>} Success indicator
  */
 export async function removeLabelFromCard(cardId: string, labelId: string) {
-    try {
-        // The correct endpoint is /api/cards/{cardId}/labels/{labelId}
-        await plankaRequest(
-            `/api/cards/${cardId}/labels/${labelId}`,
-            {
-                method: "DELETE",
-            },
-        );
+  try {
+    // The correct endpoint is /api/cards/{cardId}/labels/{labelId}
+    await plankaRequest(`/api/cards/${cardId}/labels/${labelId}`, {
+      method: "DELETE",
+    });
 
-        return { success: true };
-    } catch (error) {
-        throw new Error(
-            `Failed to remove label from card: ${
-                error instanceof Error ? error.message : String(error)
-            }`,
-        );
-    }
+    return { success: true };
+  } catch (error) {
+    throw new Error(
+      `Failed to remove label from card: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 }

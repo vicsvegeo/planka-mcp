@@ -17,9 +17,13 @@ import { PlankaListSchema } from "../common/types.js";
  * @property {number} [position] - The position of the list in the board (default: 65535)
  */
 export const CreateListSchema = z.object({
-    boardId: z.string().describe("Board ID"),
-    name: z.string().describe("List name"),
-    position: z.number().optional().describe("List position (default: 65535)"),
+  boardId: z.string().describe("Board ID"),
+  name: z.string().describe("List name"),
+  position: z.number().optional().describe("List position (default: 65535)"),
+  type: z
+    .enum(["active", "closed"])
+    .optional()
+    .describe("List type (default: active)"),
 });
 
 /**
@@ -27,7 +31,7 @@ export const CreateListSchema = z.object({
  * @property {string} boardId - The ID of the board to get lists from
  */
 export const GetListsSchema = z.object({
-    boardId: z.string().describe("Board ID"),
+  boardId: z.string().describe("Board ID"),
 });
 
 /**
@@ -37,9 +41,9 @@ export const GetListsSchema = z.object({
  * @property {number} [position] - The new position for the list
  */
 export const UpdateListSchema = z.object({
-    id: z.string().describe("List ID"),
-    name: z.string().optional().describe("List name"),
-    position: z.number().optional().describe("List position"),
+  id: z.string().describe("List ID"),
+  name: z.string().optional().describe("List name"),
+  position: z.number().optional().describe("List position"),
 });
 
 /**
@@ -47,7 +51,7 @@ export const UpdateListSchema = z.object({
  * @property {string} id - The ID of the list to delete
  */
 export const DeleteListSchema = z.object({
-    id: z.string().describe("List ID"),
+  id: z.string().describe("List ID"),
 });
 
 // Type exports
@@ -63,13 +67,13 @@ export type UpdateListOptions = z.infer<typeof UpdateListSchema>;
 
 // Response schemas
 const ListsResponseSchema = z.object({
-    items: z.array(PlankaListSchema),
-    included: z.record(z.any()).optional(),
+  items: z.array(PlankaListSchema),
+  included: z.record(z.any()).optional(),
 });
 
 const ListResponseSchema = z.object({
-    item: PlankaListSchema,
-    included: z.record(z.any()).optional(),
+  item: PlankaListSchema,
+  included: z.record(z.any()).optional(),
 });
 
 // Function implementations
@@ -84,26 +88,27 @@ const ListResponseSchema = z.object({
  * @throws {Error} If the list creation fails
  */
 export async function createList(options: CreateListOptions) {
-    try {
-        const response = await plankaRequest(
-            `/api/boards/${options.boardId}/lists`,
-            {
-                method: "POST",
-                body: {
-                    name: options.name,
-                    position: options.position,
-                },
-            },
-        );
-        const parsedResponse = ListResponseSchema.parse(response);
-        return parsedResponse.item;
-    } catch (error) {
-        throw new Error(
-            `Failed to create list: ${
-                error instanceof Error ? error.message : String(error)
-            }`,
-        );
-    }
+  try {
+    const response = await plankaRequest(
+      `/api/boards/${options.boardId}/lists`,
+      {
+        method: "POST",
+        body: {
+          name: options.name,
+          position: options.position,
+          type: options.type ?? "active",
+        },
+      },
+    );
+    const parsedResponse = ListResponseSchema.parse(response);
+    return parsedResponse.item;
+  } catch (error) {
+    throw new Error(
+      `Failed to create list: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 }
 
 /**
@@ -113,32 +118,32 @@ export async function createList(options: CreateListOptions) {
  * @returns {Promise<Array<object>>} Array of lists in the board
  */
 export async function getLists(boardId: string) {
-    try {
-        // Get the board which includes lists in the response
-        const response = await plankaRequest(`/api/boards/${boardId}`);
+  try {
+    // Get the board which includes lists in the response
+    const response = await plankaRequest(`/api/boards/${boardId}`);
 
-        // Check if the response has the expected structure
-        if (
-            response &&
-            typeof response === "object" &&
-            "included" in response &&
-            response.included &&
-            typeof response.included === "object" &&
-            "lists" in (response.included as Record<string, unknown>)
-        ) {
-            // Get the lists from the included property
-            const lists = (response.included as Record<string, unknown>).lists;
-            if (Array.isArray(lists)) {
-                return lists;
-            }
-        }
-
-        // If we can't find lists in the expected format, return an empty array
-        return [];
-    } catch (error) {
-        // If all else fails, return an empty array
-        return [];
+    // Check if the response has the expected structure
+    if (
+      response &&
+      typeof response === "object" &&
+      "included" in response &&
+      response.included &&
+      typeof response.included === "object" &&
+      "lists" in (response.included as Record<string, unknown>)
+    ) {
+      // Get the lists from the included property
+      const lists = (response.included as Record<string, unknown>).lists;
+      if (Array.isArray(lists)) {
+        return lists;
+      }
     }
+
+    // If we can't find lists in the expected format, return an empty array
+    return [];
+  } catch (error) {
+    // If all else fails, return an empty array
+    return [];
+  }
 }
 
 /**
@@ -148,14 +153,14 @@ export async function getLists(boardId: string) {
  * @returns {Promise<object|null>} The requested list or null if not found
  */
 export async function getList(id: string) {
-    try {
-        const response = await plankaRequest(`/api/lists/${id}`);
-        const parsedResponse = ListResponseSchema.parse(response);
-        return parsedResponse.item;
-    } catch (error) {
-        console.error(`Error getting list with ID ${id}:`, error);
-        return null;
-    }
+  try {
+    const response = await plankaRequest(`/api/lists/${id}`);
+    const parsedResponse = ListResponseSchema.parse(response);
+    return parsedResponse.item;
+  } catch (error) {
+    console.error(`Error getting list with ID ${id}:`, error);
+    return null;
+  }
 }
 
 /**
@@ -166,15 +171,15 @@ export async function getList(id: string) {
  * @returns {Promise<object>} The updated list
  */
 export async function updateList(
-    id: string,
-    options: Partial<Omit<CreateListOptions, "boardId">>,
+  id: string,
+  options: Partial<Omit<CreateListOptions, "boardId">>,
 ) {
-    const response = await plankaRequest(`/api/lists/${id}`, {
-        method: "PATCH",
-        body: options,
-    });
-    const parsedResponse = ListResponseSchema.parse(response);
-    return parsedResponse.item;
+  const response = await plankaRequest(`/api/lists/${id}`, {
+    method: "PATCH",
+    body: options,
+  });
+  const parsedResponse = ListResponseSchema.parse(response);
+  return parsedResponse.item;
 }
 
 /**
@@ -184,8 +189,8 @@ export async function updateList(
  * @returns {Promise<{success: boolean}>} Success indicator
  */
 export async function deleteList(id: string) {
-    await plankaRequest(`/api/lists/${id}`, {
-        method: "DELETE",
-    });
-    return { success: true };
+  await plankaRequest(`/api/lists/${id}`, {
+    method: "DELETE",
+  });
+  return { success: true };
 }
