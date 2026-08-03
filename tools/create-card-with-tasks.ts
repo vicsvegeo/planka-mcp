@@ -25,6 +25,12 @@ export const createCardWithTasksSchema = z.object({
     position: z.number().optional().describe(
         "Optional position for the card in the list",
     ),
+    baseXp: z.number().int().positive().optional().describe(
+        "XP awarded on completing this card (gamification). Defaults to 10 if omitted.",
+    ),
+    softDueDate: z.string().optional().describe(
+        "ISO date-time (gamification). Completing on/before it grants bonus XP.",
+    ),
 });
 
 /**
@@ -51,8 +57,16 @@ export type CreateCardWithTasksParams = z.infer<
  * @throws {Error} If there's an error creating the card, tasks, or comment
  */
 export async function createCardWithTasks(params: CreateCardWithTasksParams) {
-    const { listId, name, description, tasks, comment, position = 65535 } =
-        params;
+    const {
+        listId,
+        name,
+        description,
+        tasks,
+        comment,
+        position = 65535,
+        baseXp,
+        softDueDate,
+    } = params;
 
     try {
         // Create the card
@@ -61,6 +75,8 @@ export async function createCardWithTasks(params: CreateCardWithTasksParams) {
             name,
             description: description || "",
             position,
+            baseXp,
+            softDueDate,
         });
 
         // Create tasks if provided

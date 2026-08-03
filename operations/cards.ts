@@ -23,6 +23,20 @@ export const CreateCardSchema = z.object({
   name: z.string().describe("Card name"),
   description: z.string().optional().describe("Card description"),
   position: z.number().optional().describe("Card position (default: 65535)"),
+  baseXp: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      "XP awarded on completing this card (gamification). Defaults to 10 if omitted — Planka requires every card to have a value.",
+    ),
+  softDueDate: z
+    .string()
+    .optional()
+    .describe(
+      "ISO date-time (gamification). A loose due date — completing the card on or before it grants bonus XP; missing it costs nothing.",
+    ),
 });
 
 /**
@@ -57,6 +71,19 @@ export const UpdateCardSchema = z.object({
   position: z.number().optional().describe("Card position"),
   dueDate: z.string().optional().describe("Card due date (ISO format)"),
   isCompleted: z.boolean().optional().describe("Whether the card is completed"),
+  baseXp: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("XP awarded on completing this card (gamification)"),
+  softDueDate: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      "ISO date-time (gamification). Completing on/before it grants bonus XP. Pass null to clear it.",
+    ),
 });
 
 export const MoveCardSchema = z.object({
@@ -143,6 +170,11 @@ export async function createCard(options: CreateCardOptions) {
         name: options.name,
         description: options.description,
         position: options.position,
+        // Planka requires every card to be created with an XP value; default
+        // to 10 so callers that don't care about gamification aren't forced
+        // to think about it.
+        baseXp: options.baseXp ?? 10,
+        softDueDate: options.softDueDate,
       },
     });
     const parsedResponse = CardResponseSchema.parse(response);
@@ -331,12 +363,17 @@ export async function duplicateCard(id: string, position?: number) {
       throw new Error("Could not determine list ID for card duplication");
     }
 
-    // Create a new card with the same properties but with "Copy of" prefix
+    // Create a new card with the same properties but with "Copy of" prefix.
+    // The XP value carries over; the on-time bonus does not (a duplicate is
+    // a fresh, unstarted card), which matches Planka's own native /duplicate
+    // endpoint behavior.
     const newCard = await createCard({
       listId,
       name: cardName,
       description: originalCard.description || "",
       position: position || 65535,
+      baseXp: (originalCard as any).baseXp ?? undefined,
+      softDueDate: (originalCard as any).softDueDate ?? undefined,
     });
 
     return newCard;

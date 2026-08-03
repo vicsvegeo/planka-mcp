@@ -61,8 +61,34 @@ export const PlankaCardSchema = z.object({
   dueDate: z.string().nullable(),
   isCompleted: z.boolean().optional(),
   stopwatch: PlankaStopwatchSchema.nullable().optional(),
+  // Gamification (XP system)
+  baseXp: z.number().nullable().optional(),
+  softDueDate: z.string().nullable().optional(),
+  bonusAwarded: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string().nullable(),
+});
+
+// A single badge, as returned alongside a user's gamification stats.
+// `unlockedAt` is null for badges the user hasn't earned yet.
+export const PlankaGamificationBadgeSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  icon: z.string().nullable(),
+  unlockedAt: z.string().nullable(),
+});
+
+export const PlankaGamificationStatsSchema = z.object({
+  userId: z.string(),
+  xp: z.number(),
+  level: z.number(),
+  xpIntoLevel: z.number(),
+  xpForNextLevel: z.number(),
+  totalCompletions: z.number(),
+  onTimeCompletions: z.number(),
+  onTimeRate: z.number(),
 });
 
 export const PlankaTaskSchema = z.object({
@@ -145,3 +171,9 @@ export type PlankaProjectMembership = z.infer<
   typeof PlankaProjectMembershipSchema
 >;
 export type PlankaCardLabel = z.infer<typeof PlankaCardLabelSchema>;
+export type PlankaGamificationBadge = z.infer<
+  typeof PlankaGamificationBadgeSchema
+>;
+export type PlankaGamificationStats = z.infer<
+  typeof PlankaGamificationStatsSchema
+>;

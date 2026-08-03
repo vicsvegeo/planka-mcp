@@ -15,6 +15,7 @@ import * as labels from "./operations/labels.js";
 import * as lists from "./operations/lists.js";
 import * as projects from "./operations/projects.js";
 import * as tasks from "./operations/tasks.js";
+import * as gamification from "./operations/gamification.js";
 
 // Import custom tools
 import {
@@ -56,6 +57,7 @@ const resourceTypeEnum = z
     "stopwatch", // get/update-only: card time tracking
     "board_summary", // get-only: aggregated board view
     "card_details", // get-only: aggregated card view
+    "gamification_stats", // get-only: a user's XP/level/badge progress
   ])
   .describe("The kind of Planka resource to operate on");
 
@@ -69,7 +71,9 @@ function err(action: string, resourceType: string, missing: string): never {
 server.tool(
   "planka_get",
   "Read Planka data: projects, boards, lists, cards, labels, comments, tasks, " +
-    "board memberships, card stopwatches, or aggregated board/card summaries. " +
+    "board memberships, card stopwatches, aggregated board/card summaries, or " +
+    "a user's gamification stats (XP, level, badges). Cards carry gamification " +
+    "fields (baseXp, softDueDate, bonusAwarded) alongside their normal fields. " +
     "Pass `id` to fetch a single item, or omit it (with the relevant parent " +
     "id) to list items.",
   {
@@ -220,6 +224,11 @@ server.tool(
         result = await getCardDetails({ cardId: id! });
         break;
 
+      case "gamification_stats":
+        if (!id) err("get", resourceType, "id (user ID, or 'me')");
+        result = await gamification.getUserGamificationStats(id!);
+        break;
+
       default:
         throw new Error(`Unknown resourceType: ${resourceType}`);
     }
@@ -235,7 +244,10 @@ server.tool(
     "with tasks/comment in one call), labels, comments, tasks (single or " +
     "batch), board memberships, or attach a label to a card. Set " +
     "`duplicateFromId` (resourceType card) to duplicate an existing card " +
-    "instead of creating from scratch.",
+    "instead of creating from scratch. Cards use gamification: `baseXp` " +
+    "defaults to 10 if omitted (Planka requires every card to have a value); " +
+    "`softDueDate` is optional and grants bonus XP if the card is completed " +
+    "on or before it.",
   {
     resourceType: resourceTypeEnum,
     // Parents
@@ -254,6 +266,21 @@ server.tool(
     dueDate: z.string().optional().describe("ISO date, for cards"),
     color: z.string().optional().describe("Label color"),
     text: z.string().optional().describe("Comment text"),
+    // Gamification (cards / card_with_tasks)
+    baseXp: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe(
+        "XP awarded on completing this card. Defaults to 10 if omitted.",
+      ),
+    softDueDate: z
+      .string()
+      .optional()
+      .describe(
+        "ISO date-time. Completing the card on or before it grants bonus XP.",
+      ),
     // Card-with-tasks / duplicate
     tasks: z
       .array(z.string())
@@ -339,6 +366,8 @@ server.tool(
             name: args.name!,
             description: args.description,
             position: args.position ?? 65535,
+            baseXp: args.baseXp,
+            softDueDate: args.softDueDate,
           });
         }
         break;
@@ -353,6 +382,8 @@ server.tool(
           tasks: args.tasks,
           comment: args.comment,
           position: args.position ?? 65535,
+          baseXp: args.baseXp,
+          softDueDate: args.softDueDate,
         });
         break;
 
@@ -422,8 +453,9 @@ server.tool(
   "Modify existing Planka resources: rename/edit projects, boards, lists, " +
     "cards, labels, comments, tasks; move a card to a different list " +
     "(set listId, optionally boardId/projectId); mark a task complete; " +
-    "change a board membership's role; or start/stop/reset a card's " +
-    "stopwatch (resourceType stopwatch, id = card ID, set stopwatchAction).",
+    "change a board membership's role; start/stop/reset a card's " +
+    "stopwatch (resourceType stopwatch, id = card ID, set stopwatchAction); " +
+    "or edit a card's XP value / soft due date (baseXp, softDueDate).",
   {
     resourceType: resourceTypeEnum,
     id: z.string().describe("ID of the item to update"),
@@ -449,6 +481,20 @@ server.tool(
       .describe("Target project ID, if moving a card across projects"),
     // Stopwatch
     stopwatchAction: z.enum(["start", "stop", "reset"]).optional(),
+    // Gamification (card)
+    baseXp: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe("XP awarded on completing this card"),
+    softDueDate: z
+      .string()
+      .nullable()
+      .optional()
+      .describe(
+        "ISO date-time. Completing on/before it grants bonus XP. Pass null to clear it.",
+      ),
   },
   {
     readOnlyHint: false,
@@ -497,6 +543,8 @@ server.tool(
             position: args.position,
             dueDate: args.dueDate,
             isCompleted: args.isCompleted,
+            baseXp: args.baseXp,
+            softDueDate: args.softDueDate,
           } as any);
         }
         break;
