@@ -67,14 +67,15 @@ export const PlankaCardSchema = z.object({
 
 export const PlankaTaskSchema = z.object({
   id: z.string(),
-  cardId: z.string(),
-  name: z.string(),
+  taskListId: z.string(),
+  name: z.string().nullable(),
   isCompleted: z.boolean(),
   position: z.number(),
+  linkedCardId: z.string().nullable().optional(),
+  assigneeUserId: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string().nullable(),
 });
-
 export const PlankaCommentSchema = z.object({
   id: z.string(),
   cardId: z.string(),
