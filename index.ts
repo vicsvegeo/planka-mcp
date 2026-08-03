@@ -34,7 +34,7 @@ const server = new McpServer(
     capabilities: {
       tools: {},
     },
-  }
+  },
 );
 
 // ----- CONSOLIDATED KANBAN TOOLS -----
@@ -88,7 +88,7 @@ server.tool(
       case "get_projects":
         if (!args.page || !args.perPage)
           throw new Error(
-            "page and perPage are required for get_projects action"
+            "page and perPage are required for get_projects action",
           );
         result = await projects.getProjects(args.page, args.perPage);
         break;
@@ -107,7 +107,7 @@ server.tool(
       case "create_board":
         if (!args.projectId || !args.name || args.position === undefined)
           throw new Error(
-            "projectId, name, and position are required for create_board action"
+            "projectId, name, and position are required for create_board action",
           );
         result = await boards.createBoard({
           projectId: args.projectId,
@@ -124,7 +124,7 @@ server.tool(
       case "update_board":
         if (!args.id || !args.name || args.position === undefined)
           throw new Error(
-            "id, name, and position are required for update_board action"
+            "id, name, and position are required for update_board action",
           );
         const boardUpdateOptions = {
           name: args.name,
@@ -160,7 +160,7 @@ server.tool(
     return {
       content: [{ type: "text", text: JSON.stringify(result) }],
     };
-  }
+  },
 );
 
 // 2. List Manager
@@ -189,7 +189,7 @@ server.tool(
       case "create":
         if (!args.boardId || !args.name || args.position === undefined)
           throw new Error(
-            "boardId, name, and position are required for create action"
+            "boardId, name, and position are required for create action",
           );
         result = await lists.createList({
           boardId: args.boardId,
@@ -206,7 +206,7 @@ server.tool(
       case "update":
         if (!args.id || !args.name || args.position === undefined)
           throw new Error(
-            "id, name, and position are required for update action"
+            "id, name, and position are required for update action",
           );
         const { id, ...updateOptions } = args;
         result = await lists.updateList(id, {
@@ -227,7 +227,7 @@ server.tool(
     return {
       content: [{ type: "text", text: JSON.stringify(result) }],
     };
-  }
+  },
 );
 
 // 3. Card Manager
@@ -273,7 +273,7 @@ server.tool(
       .array(z.string())
       .optional()
       .describe(
-        "Array of task descriptions to create for create_with_tasks action"
+        "Array of task descriptions to create for create_with_tasks action",
       ),
     comment: z
       .string()
@@ -330,14 +330,14 @@ server.tool(
       case "move":
         if (!args.id || !args.listId || args.position === undefined)
           throw new Error(
-            "id, listId, and position are required for move action"
+            "id, listId, and position are required for move action",
           );
         result = await cards.moveCard(
           args.id,
           args.listId,
           args.position,
           args.boardId,
-          args.projectId
+          args.projectId,
         );
         break;
 
@@ -355,7 +355,7 @@ server.tool(
       case "create_with_tasks":
         if (!args.listId || !args.name)
           throw new Error(
-            "listId and name are required for create_with_tasks action"
+            "listId and name are required for create_with_tasks action",
           );
         result = await createCardWithTasks({
           listId: args.listId,
@@ -382,7 +382,7 @@ server.tool(
     return {
       content: [{ type: "text", text: JSON.stringify(result) }],
     };
-  }
+  },
 );
 
 // 4. Stopwatch Manager
@@ -422,7 +422,7 @@ server.tool(
     return {
       content: [{ type: "text", text: JSON.stringify(result) }],
     };
-  }
+  },
 );
 
 // 5. Label Manager
@@ -498,7 +498,7 @@ server.tool(
           args.position === undefined
         )
           throw new Error(
-            "boardId, name, color, and position are required for create action"
+            "boardId, name, color, and position are required for create action",
           );
         result = await labels.createLabel({
           boardId: args.boardId,
@@ -516,7 +516,7 @@ server.tool(
           args.position === undefined
         )
           throw new Error(
-            "id, name, color, and position are required for update action"
+            "id, name, color, and position are required for update action",
           );
         result = await labels.updateLabel(args.id, {
           name: args.name,
@@ -533,7 +533,7 @@ server.tool(
       case "add_to_card":
         if (!args.cardId || !args.labelId)
           throw new Error(
-            "cardId and labelId are required for add_to_card action"
+            "cardId and labelId are required for add_to_card action",
           );
         result = await labels.addLabelToCard(args.cardId, args.labelId);
         break;
@@ -541,7 +541,7 @@ server.tool(
       case "remove_from_card":
         if (!args.cardId || !args.labelId)
           throw new Error(
-            "cardId and labelId are required for remove_from_card action"
+            "cardId and labelId are required for remove_from_card action",
           );
         result = await labels.removeLabelFromCard(args.cardId, args.labelId);
         break;
@@ -553,7 +553,7 @@ server.tool(
     return {
       content: [{ type: "text", text: JSON.stringify(result) }],
     };
-  }
+  },
 );
 
 // 6. Task Manager
@@ -586,7 +586,7 @@ server.tool(
           cardId: z.string().describe("The ID of the card for this task"),
           name: z.string().describe("The name of this task"),
           position: z.number().optional().describe("The position of this task"),
-        })
+        }),
       )
       .optional()
       .describe("Array of tasks to create in batch"),
@@ -653,7 +653,7 @@ server.tool(
     return {
       content: [{ type: "text", text: JSON.stringify(result) }],
     };
-  }
+  },
 );
 
 // 7. Comment Manager
@@ -712,7 +712,7 @@ server.tool(
     return {
       content: [{ type: "text", text: JSON.stringify(result) }],
     };
-  }
+  },
 );
 
 // 8. Membership Manager
@@ -748,7 +748,7 @@ server.tool(
       case "create":
         if (!args.boardId || !args.userId || !args.role)
           throw new Error(
-            "boardId, userId, and role are required for create action"
+            "boardId, userId, and role are required for create action",
           );
         result = await boardMemberships.createBoardMembership({
           boardId: args.boardId,
@@ -772,7 +772,7 @@ server.tool(
 
         result = await boardMemberships.updateBoardMembership(
           args.id,
-          membershipUpdateOptions
+          membershipUpdateOptions,
         );
         break;
 
@@ -788,7 +788,7 @@ server.tool(
     return {
       content: [{ type: "text", text: JSON.stringify(result) }],
     };
-  }
+  },
 );
 
 // ----- HTTP SERVER (Streamable HTTP transport for remote/Cloud Run hosting) -----
@@ -805,15 +805,16 @@ const app = express();
 app.use(express.json());
 
 // Simple health check for Cloud Run
-app.get("/healthz", (_req, res) => {
+app.get("/health", (_req, res) => {
   res.status(200).send("ok");
 });
 
 app.post("/mcp", async (req, res) => {
   const authHeader = req.headers["authorization"];
-  const token = typeof authHeader === "string" && authHeader.startsWith("Bearer ")
-    ? authHeader.slice("Bearer ".length).trim()
-    : undefined;
+  const token =
+    typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length).trim()
+      : undefined;
 
   if (!token) {
     res.status(401).json({
@@ -859,5 +860,7 @@ app.delete("/mcp", (_req, res) => {
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
 app.listen(PORT, () => {
-  console.error(`Planka MCP server (Streamable HTTP) listening on port ${PORT}`);
+  console.error(
+    `Planka MCP server (Streamable HTTP) listening on port ${PORT}`,
+  );
 });
