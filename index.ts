@@ -245,6 +245,10 @@ server.tool(
     cardId: z.string().optional(),
     // Common fields
     name: z.string().optional(),
+    projectType: z
+      .enum(["private", "shared"])
+      .optional()
+      .describe("For resourceType project: private (default) or shared"),
     description: z.string().optional(),
     position: z.number().optional(),
     dueDate: z.string().optional().describe("ISO date, for cards"),
@@ -295,7 +299,10 @@ server.tool(
     switch (resourceType) {
       case "project":
         if (!args.name) err("create", resourceType, "name");
-        result = await projects.createProject(args.name);
+        result = await projects.createProject(
+          args.name,
+          (args as any).projectType ?? "private",
+        );
         break;
 
       case "board":

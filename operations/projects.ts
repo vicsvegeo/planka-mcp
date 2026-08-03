@@ -147,12 +147,15 @@ export async function getProject(id: string) {
  * @returns {Promise<object>} The created project
  * @throws {Error} If creating the project fails
  */
-export async function createProject(name: string) {
+export async function createProject(
+  name: string,
+  type: "private" | "shared" = "private",
+) {
   try {
     const sanitizedName = validateProjectName(name);
     const response = await plankaRequest("/api/projects", {
       method: "POST",
-      body: { name: sanitizedName },
+      body: { name: sanitizedName, type },
     });
     const parsedResponse = ProjectResponseSchema.parse(response);
     return parsedResponse.item;
