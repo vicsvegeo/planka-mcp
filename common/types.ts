@@ -40,7 +40,7 @@ export const PlankaListSchema = z.object({
 export const PlankaLabelSchema = z.object({
   id: z.string(),
   boardId: z.string(),
-  name: z.string(),
+  name: z.string().nullable(),
   color: z.string(),
   createdAt: z.string(),
   updatedAt: z.string().nullable(),
