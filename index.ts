@@ -75,7 +75,8 @@ const CONVENTIONS = `
 Personal conventions:
 - Default list color palette: backlog=dark-granite, todo=lagoon-blue, doing=pumpkin-orange, done=bright-moss.
 - Apply these defaults automatically when creating boards/lists unless the user specifies otherwise.
-- Mark "done" lists as type=closed.`;
+- Mark "done" lists as type=closed.
+- Do not move task to done unless explicitly instructed; instead.`;
 
 // ----- 1. GET (read-only — safe to call without confirmation) -----
 server.registerTool(
