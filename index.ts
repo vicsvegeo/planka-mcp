@@ -282,6 +282,10 @@ server.registerTool(
       position: z.number().optional(),
       dueDate: z.string().optional().describe("ISO date, for cards"),
       color: z.string().optional().describe("Label or list color"),
+      type: z
+        .enum(["active", "closed"])
+        .optional()
+        .describe("List type, for resourceType list (default: active)"),
       text: z.string().optional().describe("Comment text"),
       // Gamification (cards / card_with_tasks)
       baseXp: z
@@ -368,6 +372,7 @@ server.registerTool(
           name: args.name!,
           position: args.position ?? 65535,
           color: args.color,
+          type: args.type,
         });
         break;
 
@@ -547,6 +552,7 @@ server.registerTool(
         if (args.name !== undefined) opts.name = args.name;
         if (args.position !== undefined) opts.position = args.position;
         if (args.color !== undefined) opts.color = args.color;
+        if (args.type !== undefined) opts.type = args.type;
         result = await lists.updateList(id, opts);
         break;
       }
