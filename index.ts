@@ -67,61 +67,74 @@ function err(action: string, resourceType: string, missing: string): never {
   );
 }
 
+// ----- PERSONAL CONVENTIONS -----
+// Board-building conventions used across projects, surfaced only when the
+// Planka tools are actually loaded (not injected into general chat context).
+// Update this block as conventions evolve.
+const CONVENTIONS = `
+Personal conventions:
+- Default list color palette: backlog=dark-granite, todo=lagoon-blue, doing=pumpkin-orange, done=bright-moss.
+- Apply these defaults automatically when creating boards/lists unless the user specifies otherwise.
+- Mark "done" lists as type=closed.`;
+
 // ----- 1. GET (read-only — safe to call without confirmation) -----
-server.tool(
+server.registerTool(
   "planka_get",
-  "Read Planka data: projects, boards, lists, cards, labels, comments, tasks, " +
-    "board memberships, card stopwatches, aggregated board/card summaries, or " +
-    "a user's gamification stats (XP, level, badges). Cards carry gamification " +
-    "fields (baseXp, softDueDate, bonusAwarded) alongside their normal fields. " +
-    "Pass `id` to fetch a single item, or omit it (with the relevant parent " +
-    "id) to list items.",
   {
-    resourceType: resourceTypeEnum,
-    id: z.string().optional().describe("ID of the single item to fetch"),
-    projectId: z
-      .string()
-      .optional()
-      .describe("Parent project ID (for listing boards)"),
-    boardId: z
-      .string()
-      .optional()
-      .describe(
-        "Parent board ID (for listing lists/labels/memberships, or board_summary)",
-      ),
-    listId: z
-      .string()
-      .optional()
-      .describe("Parent list ID (for listing cards)"),
-    cardId: z
-      .string()
-      .optional()
-      .describe(
-        "Parent card ID (for listing comments/tasks, or card_details/stopwatch)",
-      ),
-    page: z
-      .number()
-      .optional()
-      .describe("Page number for paginated project listing (1-indexed)"),
-    perPage: z
-      .number()
-      .optional()
-      .describe("Items per page for paginated project listing"),
-    includeTaskDetails: z
-      .boolean()
-      .optional()
-      .default(false)
-      .describe("For board_summary: include per-card task detail"),
-    includeComments: z
-      .boolean()
-      .optional()
-      .default(false)
-      .describe("For board_summary: include per-card comments"),
-  },
-  {
-    readOnlyHint: true,
-    destructiveHint: false,
-    idempotentHint: true,
+    description:
+      "Read Planka data: projects, boards, lists, cards, labels, comments, tasks, " +
+      "board memberships, card stopwatches, aggregated board/card summaries, or " +
+      "a user's gamification stats (XP, level, badges). Cards carry gamification " +
+      "fields (baseXp, softDueDate, bonusAwarded) alongside their normal fields. " +
+      "Pass `id` to fetch a single item, or omit it (with the relevant parent " +
+      "id) to list items.",
+    inputSchema: {
+      resourceType: resourceTypeEnum,
+      id: z.string().optional().describe("ID of the single item to fetch"),
+      projectId: z
+        .string()
+        .optional()
+        .describe("Parent project ID (for listing boards)"),
+      boardId: z
+        .string()
+        .optional()
+        .describe(
+          "Parent board ID (for listing lists/labels/memberships, or board_summary)",
+        ),
+      listId: z
+        .string()
+        .optional()
+        .describe("Parent list ID (for listing cards)"),
+      cardId: z
+        .string()
+        .optional()
+        .describe(
+          "Parent card ID (for listing comments/tasks, or card_details/stopwatch)",
+        ),
+      page: z
+        .number()
+        .optional()
+        .describe("Page number for paginated project listing (1-indexed)"),
+      perPage: z
+        .number()
+        .optional()
+        .describe("Items per page for paginated project listing"),
+      includeTaskDetails: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("For board_summary: include per-card task detail"),
+      includeComments: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("For board_summary: include per-card comments"),
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+    },
   },
   async (args) => {
     let result;
@@ -238,86 +251,90 @@ server.tool(
 );
 
 // ----- 2. CREATE (safe to call without confirmation) -----
-server.tool(
+server.registerTool(
   "planka_create",
-  "Create new Planka resources: projects, boards, lists, cards (optionally " +
-    "with tasks/comment in one call), labels, comments, tasks (single or " +
-    "batch), board memberships, or attach a label to a card. Set " +
-    "`duplicateFromId` (resourceType card) to duplicate an existing card " +
-    "instead of creating from scratch. Cards use gamification: `baseXp` " +
-    "defaults to 10 if omitted (Planka requires every card to have a value); " +
-    "`softDueDate` is optional and grants bonus XP if the card is completed " +
-    "on or before it.",
   {
-    resourceType: resourceTypeEnum,
-    // Parents
-    projectId: z.string().optional(),
-    boardId: z.string().optional(),
-    listId: z.string().optional(),
-    cardId: z.string().optional(),
-    // Common fields
-    name: z.string().optional(),
-    projectType: z
-      .enum(["private", "shared"])
-      .optional()
-      .describe("For resourceType project: private (default) or shared"),
-    description: z.string().optional(),
-    position: z.number().optional(),
-    dueDate: z.string().optional().describe("ISO date, for cards"),
-    color: z.string().optional().describe("Label color"),
-    text: z.string().optional().describe("Comment text"),
-    // Gamification (cards / card_with_tasks)
-    baseXp: z
-      .number()
-      .int()
-      .positive()
-      .optional()
-      .describe(
-        "XP awarded on completing this card. Defaults to 10 if omitted.",
-      ),
-    softDueDate: z
-      .string()
-      .optional()
-      .describe(
-        "ISO date-time. Completing the card on or before it grants bonus XP.",
-      ),
-    // Card-with-tasks / duplicate
-    tasks: z
-      .array(z.string())
-      .optional()
-      .describe("Task names, for card_with_tasks"),
-    comment: z
-      .string()
-      .optional()
-      .describe("Optional comment, for card_with_tasks"),
-    duplicateFromId: z
-      .string()
-      .optional()
-      .describe("Existing card ID to duplicate (resourceType: card)"),
-    // Batch task creation
-    taskBatch: z
-      .array(
-        z.object({
-          cardId: z.string(),
-          name: z.string(),
-          position: z.number().optional(),
-        }),
-      )
-      .optional()
-      .describe(
-        "For resourceType task: create multiple tasks (possibly across cards) in one call",
-      ),
-    // Membership
-    userId: z.string().optional(),
-    role: z.enum(["editor", "viewer"]).optional(),
-    canComment: z.boolean().optional(),
-    // card_label
-    labelId: z.string().optional(),
-  },
-  {
-    readOnlyHint: false,
-    destructiveHint: false,
-    idempotentHint: false,
+    description:
+      "Create new Planka resources: projects, boards, lists, cards (optionally " +
+      "with tasks/comment in one call), labels, comments, tasks (single or " +
+      "batch), board memberships, or attach a label to a card. Set " +
+      "`duplicateFromId` (resourceType card) to duplicate an existing card " +
+      "instead of creating from scratch. Cards use gamification: `baseXp` " +
+      "defaults to 10 if omitted (Planka requires every card to have a value); " +
+      "`softDueDate` is optional and grants bonus XP if the card is completed " +
+      "on or before it." +
+      CONVENTIONS,
+    inputSchema: {
+      resourceType: resourceTypeEnum,
+      // Parents
+      projectId: z.string().optional(),
+      boardId: z.string().optional(),
+      listId: z.string().optional(),
+      cardId: z.string().optional(),
+      // Common fields
+      name: z.string().optional(),
+      projectType: z
+        .enum(["private", "shared"])
+        .optional()
+        .describe("For resourceType project: private (default) or shared"),
+      description: z.string().optional(),
+      position: z.number().optional(),
+      dueDate: z.string().optional().describe("ISO date, for cards"),
+      color: z.string().optional().describe("Label or list color"),
+      text: z.string().optional().describe("Comment text"),
+      // Gamification (cards / card_with_tasks)
+      baseXp: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe(
+          "XP awarded on completing this card. Defaults to 10 if omitted.",
+        ),
+      softDueDate: z
+        .string()
+        .optional()
+        .describe(
+          "ISO date-time. Completing the card on or before it grants bonus XP.",
+        ),
+      // Card-with-tasks / duplicate
+      tasks: z
+        .array(z.string())
+        .optional()
+        .describe("Task names, for card_with_tasks"),
+      comment: z
+        .string()
+        .optional()
+        .describe("Optional comment, for card_with_tasks"),
+      duplicateFromId: z
+        .string()
+        .optional()
+        .describe("Existing card ID to duplicate (resourceType: card)"),
+      // Batch task creation
+      taskBatch: z
+        .array(
+          z.object({
+            cardId: z.string(),
+            name: z.string(),
+            position: z.number().optional(),
+          }),
+        )
+        .optional()
+        .describe(
+          "For resourceType task: create multiple tasks (possibly across cards) in one call",
+        ),
+      // Membership
+      userId: z.string().optional(),
+      role: z.enum(["editor", "viewer"]).optional(),
+      canComment: z.boolean().optional(),
+      // card_label
+      labelId: z.string().optional(),
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+    },
   },
   async (args) => {
     let result;
@@ -349,6 +366,7 @@ server.tool(
           boardId: args.boardId!,
           name: args.name!,
           position: args.position ?? 65535,
+          color: args.color,
         });
         break;
 
@@ -448,58 +466,62 @@ server.tool(
 );
 
 // ----- 3. UPDATE (destructive — Claude should confirm with you first) -----
-server.tool(
+server.registerTool(
   "planka_update",
-  "Modify existing Planka resources: rename/edit projects, boards, lists, " +
-    "cards, labels, comments, tasks; move a card to a different list " +
-    "(set listId, optionally boardId/projectId); mark a task complete; " +
-    "change a board membership's role; start/stop/reset a card's " +
-    "stopwatch (resourceType stopwatch, id = card ID, set stopwatchAction); " +
-    "or edit a card's XP value / soft due date (baseXp, softDueDate).",
   {
-    resourceType: resourceTypeEnum,
-    id: z.string().describe("ID of the item to update"),
-    name: z.string().optional(),
-    description: z.string().optional(),
-    position: z.number().optional(),
-    dueDate: z.string().optional(),
-    isCompleted: z.boolean().optional(),
-    color: z.string().optional(),
-    text: z.string().optional().describe("New comment text"),
-    type: z.string().optional().describe("Board type"),
-    role: z.enum(["editor", "viewer"]).optional(),
-    canComment: z.boolean().optional(),
-    // Card move
-    listId: z.string().optional().describe("Target list ID, to move a card"),
-    boardId: z
-      .string()
-      .optional()
-      .describe("Target board ID, if moving a card across boards"),
-    projectId: z
-      .string()
-      .optional()
-      .describe("Target project ID, if moving a card across projects"),
-    // Stopwatch
-    stopwatchAction: z.enum(["start", "stop", "reset"]).optional(),
-    // Gamification (card)
-    baseXp: z
-      .number()
-      .int()
-      .positive()
-      .optional()
-      .describe("XP awarded on completing this card"),
-    softDueDate: z
-      .string()
-      .nullable()
-      .optional()
-      .describe(
-        "ISO date-time. Completing on/before it grants bonus XP. Pass null to clear it.",
-      ),
-  },
-  {
-    readOnlyHint: false,
-    destructiveHint: true,
-    idempotentHint: true,
+    description:
+      "Modify existing Planka resources: rename/edit projects, boards, lists, " +
+      "cards, labels, comments, tasks; move a card to a different list " +
+      "(set listId, optionally boardId/projectId); mark a task complete; " +
+      "change a board membership's role; start/stop/reset a card's " +
+      "stopwatch (resourceType stopwatch, id = card ID, set stopwatchAction); " +
+      "or edit a card's XP value / soft due date (baseXp, softDueDate)." +
+      CONVENTIONS,
+    inputSchema: {
+      resourceType: resourceTypeEnum,
+      id: z.string().describe("ID of the item to update"),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      position: z.number().optional(),
+      dueDate: z.string().optional(),
+      isCompleted: z.boolean().optional(),
+      color: z.string().optional(),
+      text: z.string().optional().describe("New comment text"),
+      type: z.string().optional().describe("Board type"),
+      role: z.enum(["editor", "viewer"]).optional(),
+      canComment: z.boolean().optional(),
+      // Card move
+      listId: z.string().optional().describe("Target list ID, to move a card"),
+      boardId: z
+        .string()
+        .optional()
+        .describe("Target board ID, if moving a card across boards"),
+      projectId: z
+        .string()
+        .optional()
+        .describe("Target project ID, if moving a card across projects"),
+      // Stopwatch
+      stopwatchAction: z.enum(["start", "stop", "reset"]).optional(),
+      // Gamification (card)
+      baseXp: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe("XP awarded on completing this card"),
+      softDueDate: z
+        .string()
+        .nullable()
+        .optional()
+        .describe(
+          "ISO date-time. Completing on/before it grants bonus XP. Pass null to clear it.",
+        ),
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+    },
   },
   async (args) => {
     let result;
@@ -519,12 +541,14 @@ server.tool(
         break;
       }
 
-      case "list":
-        result = await lists.updateList(id, {
-          name: args.name,
-          position: args.position,
-        });
+      case "list": {
+        const opts: any = {};
+        if (args.name !== undefined) opts.name = args.name;
+        if (args.position !== undefined) opts.position = args.position;
+        if (args.color !== undefined) opts.color = args.color;
+        result = await lists.updateList(id, opts);
         break;
+      }
 
       case "card":
         if (args.listId) {
@@ -599,30 +623,33 @@ server.tool(
 );
 
 // ----- 4. DELETE (destructive — Claude should confirm with you first) -----
-server.tool(
+server.registerTool(
   "planka_delete",
-  "Permanently delete Planka resources: projects, boards, lists, cards, " +
-    "labels, comments, tasks, board memberships, or detach a label from a " +
-    "card (resourceType card_label, with cardId and labelId).",
   {
-    resourceType: resourceTypeEnum,
-    id: z
-      .string()
-      .optional()
-      .describe("ID of the item to delete (not used for card_label)"),
-    cardId: z
-      .string()
-      .optional()
-      .describe("For card_label: the card to remove the label from"),
-    labelId: z
-      .string()
-      .optional()
-      .describe("For card_label: the label to remove"),
-  },
-  {
-    readOnlyHint: false,
-    destructiveHint: true,
-    idempotentHint: true,
+    description:
+      "Permanently delete Planka resources: projects, boards, lists, cards, " +
+      "labels, comments, tasks, board memberships, or detach a label from a " +
+      "card (resourceType card_label, with cardId and labelId).",
+    inputSchema: {
+      resourceType: resourceTypeEnum,
+      id: z
+        .string()
+        .optional()
+        .describe("ID of the item to delete (not used for card_label)"),
+      cardId: z
+        .string()
+        .optional()
+        .describe("For card_label: the card to remove the label from"),
+      labelId: z
+        .string()
+        .optional()
+        .describe("For card_label: the label to remove"),
+    },
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+    },
   },
   async (args) => {
     let result;

@@ -24,6 +24,10 @@ export const CreateListSchema = z.object({
     .enum(["active", "closed"])
     .optional()
     .describe("List type (default: active)"),
+  color: z
+    .string()
+    .optional()
+    .describe("List color (Planka list color name, e.g. 'lagoon-blue')"),
 });
 
 /**
@@ -39,11 +43,13 @@ export const GetListsSchema = z.object({
  * @property {string} id - The ID of the list to update
  * @property {string} [name] - The new name for the list
  * @property {number} [position] - The new position for the list
+ * @property {string} [color] - The new color for the list
  */
 export const UpdateListSchema = z.object({
   id: z.string().describe("List ID"),
   name: z.string().optional().describe("List name"),
   position: z.number().optional().describe("List position"),
+  color: z.string().optional().describe("List color"),
 });
 
 /**
@@ -84,6 +90,7 @@ const ListResponseSchema = z.object({
  * @param {string} options.boardId - The ID of the board to create the list in
  * @param {string} options.name - The name of the list
  * @param {number} [options.position] - The position of the list in the board (default: 65535)
+ * @param {string} [options.color] - The color of the list
  * @returns {Promise<object>} The created list
  * @throws {Error} If the list creation fails
  */
@@ -97,6 +104,7 @@ export async function createList(options: CreateListOptions) {
           name: options.name,
           position: options.position ?? 65535,
           type: options.type ?? "active",
+          ...(options.color !== undefined ? { color: options.color } : {}),
         },
       },
     );
