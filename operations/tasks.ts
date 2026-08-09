@@ -35,6 +35,10 @@ export const UpdateTaskSchema = z.object({
   position: z.number().optional().describe("Task position"),
 });
 
+export const BatchUpdateTasksSchema = z.object({
+  tasks: z.array(UpdateTaskSchema).describe("Array of task updates to apply"),
+});
+
 export const DeleteTaskSchema = z.object({
   id: z.string().describe("Task ID"),
 });
@@ -42,6 +46,7 @@ export const DeleteTaskSchema = z.object({
 export type CreateTaskOptions = z.infer<typeof CreateTaskSchema>;
 export type BatchCreateTasksOptions = z.infer<typeof BatchCreateTasksSchema>;
 export type UpdateTaskOptions = z.infer<typeof UpdateTaskSchema>;
+export type BatchUpdateTasksOptions = z.infer<typeof BatchUpdateTasksSchema>;
 
 const TasksResponseSchema = z.object({
   items: z.array(PlankaTaskSchema),
@@ -232,14 +237,51 @@ export async function getTask(id: string, cardId?: string) {
 
 export async function updateTask(
   id: string,
-  options: Partial<Omit<CreateTaskOptions, "cardId">>,
+  options: Partial<Omit<UpdateTaskOptions, "id">>,
 ) {
-  const response = await plankaRequest(`/api/tasks/${id}`, {
-    method: "PATCH",
-    body: options,
-  });
-  const parsedResponse = TaskResponseSchema.parse(response);
-  return parsedResponse.item;
+  try {
+    const response = await plankaRequest(`/api/tasks/${id}`, {
+      method: "PATCH",
+      body: options,
+    });
+    const parsedResponse = TaskResponseSchema.parse(response);
+    return parsedResponse.item;
+  } catch (error) {
+    throw new Error(
+      `Failed to update task ${id}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+}
+
+/**
+ * Updates multiple tasks in one call (e.g. checking off several tasks on a
+ * card, or across several cards — task IDs are globally unique in Planka so
+ * no cardId grouping is needed). One failing item doesn't abort the rest;
+ * per-item outcomes are reported in `results`, mirroring batchCreateTasks.
+ */
+export async function batchUpdateTasks(options: BatchUpdateTasksOptions) {
+  const results: Array<any> = [];
+  const successes: Array<any> = [];
+  const failures: Array<any> = [];
+
+  for (let i = 0; i < options.tasks.length; i++) {
+    const { id, ...fields } = options.tasks[i];
+
+    try {
+      const result = await updateTask(id, fields);
+      results.push({ success: true, id, result });
+      successes.push(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      results.push({ success: false, id, error: { message: errorMessage } });
+      failures.push({ index: i, id, error: errorMessage });
+    }
+  }
+
+  return { results, successes, failures };
 }
 
 export async function deleteTask(id: string) {

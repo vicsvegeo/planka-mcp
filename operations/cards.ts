@@ -39,6 +39,14 @@ export const CreateCardSchema = z.object({
     ),
 });
 
+export const BatchCreateCardsSchema = z.object({
+  cards: z
+    .array(CreateCardSchema)
+    .describe(
+      "Array of cards to create (possibly across different lists) in one call",
+    ),
+});
+
 /**
  * Schema for retrieving cards from a list
  * @property {string} listId - The ID of the list to get cards from
@@ -95,6 +103,49 @@ export const MoveCardSchema = z.object({
     .describe("Card position in the target list (default: 65535)"),
 });
 
+export const BatchUpdateCardsSchema = z.object({
+  cards: z
+    .array(
+      z.object({
+        id: z.string().describe("Card ID"),
+        name: z.string().optional().describe("Card name"),
+        description: z.string().optional().describe("Card description"),
+        position: z.number().optional().describe("Card position"),
+        dueDate: z.string().optional().describe("Card due date (ISO format)"),
+        isCompleted: z
+          .boolean()
+          .optional()
+          .describe("Whether the card is completed"),
+        baseXp: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe("XP awarded on completing this card (gamification)"),
+        softDueDate: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("ISO date-time. Pass null to clear it."),
+        listId: z
+          .string()
+          .optional()
+          .describe("Target list ID — if set, moves the card"),
+        boardId: z
+          .string()
+          .optional()
+          .describe("Target board ID, if moving across boards"),
+        projectId: z
+          .string()
+          .optional()
+          .describe("Target project ID, if moving across projects"),
+      }),
+    )
+    .describe(
+      "Array of card updates/moves to apply (e.g. moving several cards to the same list)",
+    ),
+});
+
 export const DuplicateCardSchema = z.object({
   id: z.string().describe("Card ID to duplicate"),
   position: z
@@ -126,8 +177,10 @@ export const ResetCardStopwatchSchema = z.object({
 
 // Type exports
 export type CreateCardOptions = z.infer<typeof CreateCardSchema>;
+export type BatchCreateCardsOptions = z.infer<typeof BatchCreateCardsSchema>;
 export type UpdateCardOptions = z.infer<typeof UpdateCardSchema>;
 export type MoveCardOptions = z.infer<typeof MoveCardSchema>;
+export type BatchUpdateCardsOptions = z.infer<typeof BatchUpdateCardsSchema>;
 export type DuplicateCardOptions = z.infer<typeof DuplicateCardSchema>;
 export type StartCardStopwatchOptions = z.infer<
   typeof StartCardStopwatchSchema
@@ -186,6 +239,34 @@ export async function createCard(options: CreateCardOptions) {
       }`,
     );
   }
+}
+
+/**
+ * Creates multiple cards in one call (possibly across different lists). One
+ * failing item doesn't abort the rest; per-item outcomes are reported in
+ * `results`, mirroring tasks.batchCreateTasks.
+ */
+export async function batchCreateCards(options: BatchCreateCardsOptions) {
+  const results: Array<any> = [];
+  const successes: Array<any> = [];
+  const failures: Array<any> = [];
+
+  for (let i = 0; i < options.cards.length; i++) {
+    const card = options.cards[i];
+
+    try {
+      const result = await createCard(card);
+      results.push({ success: true, result });
+      successes.push(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      results.push({ success: false, error: { message: errorMessage } });
+      failures.push({ index: i, card, error: errorMessage });
+    }
+  }
+
+  return { results, successes, failures };
 }
 
 /**
@@ -339,6 +420,37 @@ export async function moveCard(
       }`,
     );
   }
+}
+
+/**
+ * Updates or moves multiple cards in one call (e.g. moving several cards to
+ * the same list, or applying the same field edit to a batch of cards). One
+ * failing item doesn't abort the rest; per-item outcomes are reported in
+ * `results`, mirroring tasks.batchCreateTasks / tasks.batchUpdateTasks.
+ */
+export async function batchUpdateCards(options: BatchUpdateCardsOptions) {
+  const results: Array<any> = [];
+  const successes: Array<any> = [];
+  const failures: Array<any> = [];
+
+  for (let i = 0; i < options.cards.length; i++) {
+    const { id, listId, boardId, projectId, ...fields } = options.cards[i];
+
+    try {
+      const result = listId
+        ? await moveCard(id, listId, fields.position ?? 65535, boardId, projectId)
+        : await updateCard(id, fields as any);
+      results.push({ success: true, id, result });
+      successes.push(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      results.push({ success: false, id, error: { message: errorMessage } });
+      failures.push({ index: i, id, error: errorMessage });
+    }
+  }
+
+  return { results, successes, failures };
 }
 
 /**

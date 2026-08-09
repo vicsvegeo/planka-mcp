@@ -254,14 +254,19 @@ server.registerTool(
   "planka_create",
   {
     description:
-      "Create new Planka resources: projects, boards, lists, cards (optionally " +
-      "with tasks/comment in one call), labels, comments, tasks (single or " +
-      "batch), board memberships, or attach a label to a card. Set " +
-      "`duplicateFromId` (resourceType card) to duplicate an existing card " +
-      "instead of creating from scratch. Cards use gamification: `baseXp` " +
-      "defaults to 10 if omitted (Planka requires every card to have a value); " +
-      "`softDueDate` is optional and grants bonus XP if the card is completed " +
-      "on or before it." +
+      "Create new Planka resources: projects, boards, lists, cards (single, " +
+      "batch, or optionally with tasks/comment in one call), labels, " +
+      "comments, tasks (single or batch), board memberships, or attach a " +
+      "label to a card. Set `duplicateFromId` (resourceType card) to " +
+      "duplicate an existing card instead of creating from scratch. For N " +
+      "near-identical creates, use `taskBatch` or `cardBatch` instead of N " +
+      "separate calls — e.g. seeding several backlog cards at once. Each " +
+      "batch item may fail independently; check the per-item `results` " +
+      "array rather than assuming the whole call succeeded or failed " +
+      "together. Cards use gamification: `baseXp` defaults to 10 if omitted " +
+      "(Planka requires every card to have a value); `softDueDate` is " +
+      "optional and grants bonus XP if the card is completed on or before " +
+      "it." +
       CONVENTIONS,
     inputSchema: {
       resourceType: resourceTypeEnum,
@@ -326,6 +331,22 @@ server.registerTool(
         .describe(
           "For resourceType task: create multiple tasks (possibly across cards) in one call",
         ),
+      // Batch card creation
+      cardBatch: z
+        .array(
+          z.object({
+            listId: z.string(),
+            name: z.string(),
+            description: z.string().optional(),
+            position: z.number().optional(),
+            baseXp: z.number().int().positive().optional(),
+            softDueDate: z.string().optional(),
+          }),
+        )
+        .optional()
+        .describe(
+          "For resourceType card: create multiple cards (possibly across different lists) in one call",
+        ),
       // Membership
       userId: z.string().optional(),
       role: z.enum(["editor", "viewer"]).optional(),
@@ -375,14 +396,16 @@ server.registerTool(
         break;
 
       case "card":
-        if (args.duplicateFromId) {
+        if (args.cardBatch && args.cardBatch.length > 0) {
+          result = await cards.batchCreateCards({ cards: args.cardBatch });
+        } else if (args.duplicateFromId) {
           result = await cards.duplicateCard(
             args.duplicateFromId,
             args.position,
           );
         } else {
           if (!args.listId || !args.name)
-            err("create", resourceType, "listId and name");
+            err("create", resourceType, "listId and name (or cardBatch)");
           result = await cards.createCard({
             listId: args.listId!,
             name: args.name!,
@@ -479,11 +502,20 @@ server.registerTool(
       "(set listId, optionally boardId/projectId); mark a task complete; " +
       "change a board membership's role; start/stop/reset a card's " +
       "stopwatch (resourceType stopwatch, id = card ID, set stopwatchAction); " +
-      "or edit a card's XP value / soft due date (baseXp, softDueDate)." +
+      "or edit a card's XP value / soft due date (baseXp, softDueDate). " +
+      "For N near-identical updates, use `taskBatch` (resourceType task) or " +
+      "`cardBatch` (resourceType card) instead of N separate calls — e.g. " +
+      "checking off several tasks at once, or moving several cards to the " +
+      "same list. Each batch item may fail independently; check the " +
+      "per-item `results` array rather than assuming the whole call " +
+      "succeeded or failed together." +
       CONVENTIONS,
     inputSchema: {
       resourceType: resourceTypeEnum,
-      id: z.string().describe("ID of the item to update"),
+      id: z
+        .string()
+        .optional()
+        .describe("ID of the item to update (omit when using taskBatch/cardBatch)"),
       name: z.string().optional(),
       description: z.string().optional(),
       position: z.number().optional(),
@@ -520,6 +552,47 @@ server.registerTool(
         .describe(
           "ISO date-time. Completing on/before it grants bonus XP. Pass null to clear it.",
         ),
+      // Batch task updates
+      taskBatch: z
+        .array(
+          z.object({
+            id: z.string(),
+            name: z.string().optional(),
+            isCompleted: z.boolean().optional(),
+            position: z.number().optional(),
+          }),
+        )
+        .optional()
+        .describe(
+          "For resourceType task: update multiple tasks (possibly across " +
+            "different cards — task IDs are globally unique) in one call, " +
+            "e.g. checking off several at once",
+        ),
+      // Batch card updates/moves
+      cardBatch: z
+        .array(
+          z.object({
+            id: z.string(),
+            name: z.string().optional(),
+            description: z.string().optional(),
+            position: z.number().optional(),
+            dueDate: z.string().optional(),
+            isCompleted: z.boolean().optional(),
+            baseXp: z.number().int().positive().optional(),
+            softDueDate: z.string().nullable().optional(),
+            listId: z
+              .string()
+              .optional()
+              .describe("Target list ID — if set, moves the card"),
+            boardId: z.string().optional(),
+            projectId: z.string().optional(),
+          }),
+        )
+        .optional()
+        .describe(
+          "For resourceType card: update or move multiple cards in one " +
+            "call, e.g. moving several cards to the same list",
+        ),
     },
     annotations: {
       readOnlyHint: false,
@@ -533,30 +606,37 @@ server.registerTool(
 
     switch (resourceType) {
       case "project":
-        result = await projects.updateProject(id, { name: args.name });
+        if (!id) err("update", resourceType, "id");
+        result = await projects.updateProject(id!, { name: args.name });
         break;
 
       case "board": {
+        if (!id) err("update", resourceType, "id");
         const opts: any = {};
         if (args.name !== undefined) opts.name = args.name;
         if (args.position !== undefined) opts.position = args.position;
         if (args.type !== undefined) opts.type = args.type;
-        result = await boards.updateBoard(id, opts);
+        result = await boards.updateBoard(id!, opts);
         break;
       }
 
       case "list": {
+        if (!id) err("update", resourceType, "id");
         const opts: any = {};
         if (args.name !== undefined) opts.name = args.name;
         if (args.position !== undefined) opts.position = args.position;
         if (args.color !== undefined) opts.color = args.color;
         if (args.type !== undefined) opts.type = args.type;
-        result = await lists.updateList(id, opts);
+        result = await lists.updateList(id!, opts);
         break;
       }
 
       case "card":
-        if (args.listId) {
+        if (args.cardBatch && args.cardBatch.length > 0) {
+          result = await cards.batchUpdateCards({ cards: args.cardBatch });
+        } else if (!id) {
+          err("update", resourceType, "id (or cardBatch)");
+        } else if (args.listId) {
           // A listId means this is a move, not a plain field edit.
           result = await cards.moveCard(
             id,
@@ -579,7 +659,8 @@ server.registerTool(
         break;
 
       case "label":
-        result = await labels.updateLabel(id, {
+        if (!id) err("update", resourceType, "id");
+        result = await labels.updateLabel(id!, {
           name: args.name,
           color: args.color as any,
           position: args.position,
@@ -587,34 +668,42 @@ server.registerTool(
         break;
 
       case "comment":
+        if (!id) err("update", resourceType, "id");
         if (!args.text) err("update", resourceType, "text");
-        result = await comments.updateComment(id, { text: args.text });
+        result = await comments.updateComment(id!, { text: args.text });
         break;
 
       case "task":
-        result = await tasks.updateTask(id, {
-          name: args.name,
-          isCompleted: args.isCompleted,
-          position: args.position,
-        } as any);
+        if (args.taskBatch && args.taskBatch.length > 0) {
+          result = await tasks.batchUpdateTasks({ tasks: args.taskBatch });
+        } else {
+          if (!id) err("update", resourceType, "id (or taskBatch)");
+          result = await tasks.updateTask(id!, {
+            name: args.name,
+            isCompleted: args.isCompleted,
+            position: args.position,
+          } as any);
+        }
         break;
 
       case "membership": {
+        if (!id) err("update", resourceType, "id");
         const opts: any = {};
         if (args.role !== undefined) opts.role = args.role;
         if (args.canComment !== undefined) opts.canComment = args.canComment;
-        result = await boardMemberships.updateBoardMembership(id, opts);
+        result = await boardMemberships.updateBoardMembership(id!, opts);
         break;
       }
 
       case "stopwatch":
+        if (!id) err("update", resourceType, "id (card ID)");
         if (!args.stopwatchAction)
           err("update", resourceType, "stopwatchAction");
         if (args.stopwatchAction === "start")
-          result = await cards.startCardStopwatch(id);
+          result = await cards.startCardStopwatch(id!);
         else if (args.stopwatchAction === "stop")
-          result = await cards.stopCardStopwatch(id);
-        else result = await cards.resetCardStopwatch(id);
+          result = await cards.stopCardStopwatch(id!);
+        else result = await cards.resetCardStopwatch(id!);
         break;
 
       default:
