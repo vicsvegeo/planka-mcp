@@ -22,11 +22,12 @@ import * as labels from "./labels.js";
  * @property {number} [position] - The position of the board in the project (default: 65535)
  */
 export const CreateBoardSchema = z.object({
-    projectId: z.string().describe("Project ID"),
-    name: z.string().describe("Board name"),
-    position: z.number().default(65535).describe(
-        "Board position (default: 65535)",
-    ),
+  projectId: z.string().describe("Project ID"),
+  name: z.string().describe("Board name"),
+  position: z
+    .number()
+    .default(65535)
+    .describe("Board position (default: 65535)"),
 });
 
 /**
@@ -34,7 +35,7 @@ export const CreateBoardSchema = z.object({
  * @property {string} projectId - The ID of the project to get boards from
  */
 export const GetBoardsSchema = z.object({
-    projectId: z.string().describe("Project ID"),
+  projectId: z.string().describe("Project ID"),
 });
 
 /**
@@ -42,7 +43,7 @@ export const GetBoardsSchema = z.object({
  * @property {string} id - The ID of the board to retrieve
  */
 export const GetBoardSchema = z.object({
-    id: z.string().describe("Board ID"),
+  id: z.string().describe("Board ID"),
 });
 
 /**
@@ -53,10 +54,10 @@ export const GetBoardSchema = z.object({
  * @property {string} [type] - The type of the board
  */
 export const UpdateBoardSchema = z.object({
-    id: z.string().describe("Board ID"),
-    name: z.string().optional().describe("Board name"),
-    position: z.number().optional().describe("Board position"),
-    type: z.string().optional().describe("Board type"),
+  id: z.string().describe("Board ID"),
+  name: z.string().optional().describe("Board name"),
+  position: z.number().optional().describe("Board position"),
+  type: z.string().optional().describe("Board type"),
 });
 
 /**
@@ -64,7 +65,7 @@ export const UpdateBoardSchema = z.object({
  * @property {string} id - The ID of the board to delete
  */
 export const DeleteBoardSchema = z.object({
-    id: z.string().describe("Board ID"),
+  id: z.string().describe("Board ID"),
 });
 
 // Type exports
@@ -80,47 +81,69 @@ export type UpdateBoardOptions = z.infer<typeof UpdateBoardSchema>;
 
 // Response schemas
 const BoardsResponseSchema = z.object({
-    items: z.array(PlankaBoardSchema),
-    included: z.record(z.any()).optional(),
+  items: z.array(PlankaBoardSchema),
+  included: z.record(z.any()).optional(),
 });
 
 const BoardResponseSchema = z.object({
-    item: PlankaBoardSchema,
-    included: z.record(z.any()).optional(),
+  item: PlankaBoardSchema,
+  included: z.record(z.any()).optional(),
 });
 
 // Function implementations
 /**
- * Creates default lists for a new board
+ * Creates default lists for a new board, per personal convention:
+ * backlog/todo/doing/done with a fixed
+ * color palette, "done" marked as a closed list.
  *
  * @param {string} boardId - The ID of the board to create lists for
  * @returns {Promise<void>}
  * @private
  */
 async function createDefaultLists(boardId: string) {
-    try {
-        const defaultLists = [
-            { name: "Backlog", position: 65535 },
-            { name: "To Do", position: 131070 },
-            { name: "In Progress", position: 196605 },
-            { name: "On Hold", position: 262140 },
-            { name: "Review", position: 327675 },
-            { name: "Done", position: 393210 },
-        ];
+  try {
+    const defaultLists = [
+      {
+        name: "backlog",
+        position: 65535,
+        color: "dark-granite",
+        type: "active" as const,
+      },
+      {
+        name: "todo",
+        position: 131070,
+        color: "lagoon-blue",
+        type: "active" as const,
+      },
+      {
+        name: "doing",
+        position: 196605,
+        color: "pumpkin-orange",
+        type: "active" as const,
+      },
+      {
+        name: "done",
+        position: 262140,
+        color: "bright-moss",
+        type: "closed" as const,
+      },
+    ];
 
-        for (const list of defaultLists) {
-            await lists.createList({
-                boardId,
-                name: list.name,
-                position: list.position,
-            });
-        }
-    } catch (error) {
-        console.error(
-            `Error creating default lists for board ${boardId}:`,
-            error instanceof Error ? error.message : String(error),
-        );
+    for (const list of defaultLists) {
+      await lists.createList({
+        boardId,
+        name: list.name,
+        position: list.position,
+        color: list.color,
+        type: list.type,
+      });
     }
+  } catch (error) {
+    console.error(
+      `Error creating default lists for board ${boardId}:`,
+      error instanceof Error ? error.message : String(error),
+    );
+  }
 }
 
 /**
@@ -128,51 +151,47 @@ async function createDefaultLists(boardId: string) {
  * @param boardId The ID of the board to create labels for
  */
 async function createDefaultLabels(boardId: string) {
-    try {
-        // Priority labels
-        const priorityLabels = [
-            { name: "P0: Critical", color: "berry-red", position: 65535 },
-            { name: "P1: High", color: "red-burgundy", position: 131070 },
-            { name: "P2: Medium", color: "pumpkin-orange", position: 196605 },
-            { name: "P3: Low", color: "sunny-grass", position: 262140 },
-        ];
+  try {
+    // Priority labels
+    const priorityLabels = [
+      { name: "P0: Critical", color: "berry-red", position: 65535 },
+      { name: "P1: High", color: "red-burgundy", position: 131070 },
+      { name: "P2: Medium", color: "pumpkin-orange", position: 196605 },
+      { name: "P3: Low", color: "sunny-grass", position: 262140 },
+    ];
 
-        // Type labels
-        const typeLabels = [
-            { name: "Bug", color: "coral-green", position: 327675 },
-            { name: "Feature", color: "lagoon-blue", position: 393210 },
-            { name: "Enhancement", color: "bright-moss", position: 458745 },
-            { name: "Documentation", color: "light-orange", position: 524280 },
-        ];
+    // Type labels
+    const typeLabels = [
+      { name: "Bug", color: "coral-green", position: 327675 },
+      { name: "Feature", color: "lagoon-blue", position: 393210 },
+      { name: "Enhancement", color: "bright-moss", position: 458745 },
+      { name: "Documentation", color: "light-orange", position: 524280 },
+    ];
 
-        // Status labels
-        const statusLabels = [
-            { name: "Blocked", color: "midnight-blue", position: 589815 },
-            { name: "Needs Info", color: "desert-sand", position: 655350 },
-            { name: "Ready", color: "egg-yellow", position: 720885 },
-        ];
+    // Status labels
+    const statusLabels = [
+      { name: "Blocked", color: "midnight-blue", position: 589815 },
+      { name: "Needs Info", color: "desert-sand", position: 655350 },
+      { name: "Ready", color: "egg-yellow", position: 720885 },
+    ];
 
-        // Combine all labels
-        const defaultLabels = [
-            ...priorityLabels,
-            ...typeLabels,
-            ...statusLabels,
-        ];
+    // Combine all labels
+    const defaultLabels = [...priorityLabels, ...typeLabels, ...statusLabels];
 
-        for (const label of defaultLabels) {
-            await labels.createLabel({
-                boardId,
-                name: label.name,
-                color: label.color as any, // Type assertion needed due to enum constraints
-                position: label.position,
-            });
-        }
-    } catch (error) {
-        console.error(
-            `Error creating default labels for board ${boardId}:`,
-            error instanceof Error ? error.message : String(error),
-        );
+    for (const label of defaultLabels) {
+      await labels.createLabel({
+        boardId,
+        name: label.name,
+        color: label.color as any, // Type assertion needed due to enum constraints
+        position: label.position,
+      });
     }
+  } catch (error) {
+    console.error(
+      `Error creating default labels for board ${boardId}:`,
+      error instanceof Error ? error.message : String(error),
+    );
+  }
 }
 
 /**
@@ -186,53 +205,50 @@ async function createDefaultLabels(boardId: string) {
  * @throws {Error} If the board creation fails
  */
 export async function createBoard(options: CreateBoardOptions) {
+  try {
+    const response = await plankaRequest(
+      `/api/projects/${options.projectId}/boards`,
+      {
+        method: "POST",
+        body: {
+          name: options.name,
+          position: options.position,
+        },
+      },
+    );
+    const parsedResponse = BoardResponseSchema.parse(response);
+    const board = parsedResponse.item;
+
+    // Add the admin user as a board member
     try {
-        const response = await plankaRequest(
-            `/api/projects/${options.projectId}/boards`,
-            {
-                method: "POST",
-                body: {
-                    name: options.name,
-                    position: options.position,
-                },
-            },
+      const adminUserId = await getAdminUserId();
+      if (adminUserId) {
+        await boardMemberships.createBoardMembership({
+          boardId: board.id,
+          userId: adminUserId,
+          role: "editor",
+        });
+      } else {
+        console.error(
+          "Could not add admin user as board member: Admin user ID not found",
         );
-        const parsedResponse = BoardResponseSchema.parse(response);
-        const board = parsedResponse.item;
-
-        // Add the admin user as a board member
-        try {
-            const adminUserId = await getAdminUserId();
-            if (adminUserId) {
-                await boardMemberships.createBoardMembership({
-                    boardId: board.id,
-                    userId: adminUserId,
-                    role: "editor",
-                });
-            } else {
-                console.error(
-                    "Could not add admin user as board member: Admin user ID not found",
-                );
-            }
-        } catch (error) {
-            console.error(
-                "Error adding admin user as board member:",
-                error,
-            );
-        }
-
-        // Create default lists and labels
-        await createDefaultLists(board.id);
-        await createDefaultLabels(board.id);
-
-        return board;
+      }
     } catch (error) {
-        throw new Error(
-            `Failed to create board: ${
-                error instanceof Error ? error.message : String(error)
-            }`,
-        );
+      console.error("Error adding admin user as board member:", error);
     }
+
+    // Create default lists and labels
+    await createDefaultLists(board.id);
+    await createDefaultLabels(board.id);
+
+    return board;
+  } catch (error) {
+    throw new Error(
+      `Failed to create board: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 }
 
 /**
@@ -243,39 +259,39 @@ export async function createBoard(options: CreateBoardOptions) {
  * @throws {Error} If retrieving boards fails
  */
 export async function getBoards(projectId: string) {
-    try {
-        // Get all projects which includes boards in the response
-        const response = await plankaRequest(`/api/projects`);
+  try {
+    // Get all projects which includes boards in the response
+    const response = await plankaRequest(`/api/projects`);
 
-        // Check if the response has the expected structure
-        if (
-            response &&
-            typeof response === "object" &&
-            "included" in response &&
-            response.included &&
-            typeof response.included === "object" &&
-            "boards" in (response.included as Record<string, unknown>)
-        ) {
-            // Filter boards by projectId
-            const allBoards =
-                (response.included as Record<string, unknown>).boards;
-            if (Array.isArray(allBoards)) {
-                const filteredBoards = allBoards.filter((board) =>
-                    typeof board === "object" &&
-                    board !== null &&
-                    "projectId" in board &&
-                    board.projectId === projectId
-                );
-                return filteredBoards;
-            }
-        }
-
-        // If we can't find boards in the expected format, return an empty array
-        return [];
-    } catch (error) {
-        // If all else fails, return an empty array
-        return [];
+    // Check if the response has the expected structure
+    if (
+      response &&
+      typeof response === "object" &&
+      "included" in response &&
+      response.included &&
+      typeof response.included === "object" &&
+      "boards" in (response.included as Record<string, unknown>)
+    ) {
+      // Filter boards by projectId
+      const allBoards = (response.included as Record<string, unknown>).boards;
+      if (Array.isArray(allBoards)) {
+        const filteredBoards = allBoards.filter(
+          (board) =>
+            typeof board === "object" &&
+            board !== null &&
+            "projectId" in board &&
+            board.projectId === projectId,
+        );
+        return filteredBoards;
+      }
     }
+
+    // If we can't find boards in the expected format, return an empty array
+    return [];
+  } catch (error) {
+    // If all else fails, return an empty array
+    return [];
+  }
 }
 
 /**
@@ -286,9 +302,9 @@ export async function getBoards(projectId: string) {
  * @throws {Error} If retrieving the board fails
  */
 export async function getBoard(id: string) {
-    const response = await plankaRequest(`/api/boards/${id}`);
-    const parsedResponse = BoardResponseSchema.parse(response);
-    return parsedResponse.item;
+  const response = await plankaRequest(`/api/boards/${id}`);
+  const parsedResponse = BoardResponseSchema.parse(response);
+  return parsedResponse.item;
 }
 
 /**
@@ -300,15 +316,15 @@ export async function getBoard(id: string) {
  * @throws {Error} If updating the board fails
  */
 export async function updateBoard(
-    id: string,
-    options: Partial<Omit<CreateBoardOptions, "projectId">>,
+  id: string,
+  options: Partial<Omit<CreateBoardOptions, "projectId">>,
 ) {
-    const response = await plankaRequest(`/api/boards/${id}`, {
-        method: "PATCH",
-        body: options,
-    });
-    const parsedResponse = BoardResponseSchema.parse(response);
-    return parsedResponse.item;
+  const response = await plankaRequest(`/api/boards/${id}`, {
+    method: "PATCH",
+    body: options,
+  });
+  const parsedResponse = BoardResponseSchema.parse(response);
+  return parsedResponse.item;
 }
 
 /**
@@ -319,8 +335,8 @@ export async function updateBoard(
  * @throws {Error} If deleting the board fails
  */
 export async function deleteBoard(id: string) {
-    await plankaRequest(`/api/boards/${id}`, {
-        method: "DELETE",
-    });
-    return { success: true };
+  await plankaRequest(`/api/boards/${id}`, {
+    method: "DELETE",
+  });
+  return { success: true };
 }
