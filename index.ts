@@ -74,7 +74,8 @@ function err(action: string, resourceType: string, missing: string): never {
 const CONVENTIONS = `
 Personal conventions:
 - Do not move task to done unless explicitly instructed.
-- Always set a thoughtful baseXp when creating cards, scaled to the task's real complexity/effort — only leave it to the schema default (10) if the task is genuinely trivial. Otherwise scale it up accordingly, no limit. This ensures gamification is meaningful and fair.`;
+- Always set a thoughtful baseXp when creating cards, scaled to the task's real complexity/effort — only leave it to the schema default (10) if the task is genuinely trivial. Otherwise scale it up accordingly, no limit. This ensures gamification is meaningful and fair.
+- Boards are created with automatic default lists (backlog, todo, doing, done (type=closed)). Do not create additional lists unless explicitly instructed.`;
 
 // ----- 1. GET (read-only — safe to call without confirmation) -----
 server.registerTool(
