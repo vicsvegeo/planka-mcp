@@ -74,7 +74,7 @@ function err(action: string, resourceType: string, missing: string): never {
 const CONVENTIONS = `
 Personal conventions:
 - Do not move task to done unless explicitly instructed.
-- Always set a thoughtful baseXp when creating cards, scaled to the task's real complexity/effort — only leave it to the schema default (10) if the task is genuinely trivial. Otherwise scale it up accordingly (up to a max of 150). This ensures gamification is meaningful and fair.`;
+- Always set a thoughtful baseXp when creating cards, scaled to the task's real complexity/effort — only leave it to the schema default (10) if the task is genuinely trivial. Otherwise scale it up accordingly, no limit. This ensures gamification is meaningful and fair.`;
 
 // ----- 1. GET (read-only — safe to call without confirmation) -----
 server.registerTool(
@@ -515,7 +515,9 @@ server.registerTool(
       id: z
         .string()
         .optional()
-        .describe("ID of the item to update (omit when using taskBatch/cardBatch)"),
+        .describe(
+          "ID of the item to update (omit when using taskBatch/cardBatch)",
+        ),
       name: z.string().optional(),
       description: z.string().optional(),
       position: z.number().optional(),
