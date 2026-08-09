@@ -76,7 +76,8 @@ Personal conventions:
 - Default list color palette: backlog=dark-granite, todo=lagoon-blue, doing=pumpkin-orange, done=bright-moss.
 - Apply these defaults automatically when creating boards/lists unless the user specifies otherwise.
 - Mark "done" lists as type=closed.
-- Do not move task to done unless explicitly instructed; instead.`;
+- Do not move task to done unless explicitly instructed.
+- Always set a thoughtful baseXp when creating cards, scaled to the task's real complexity/effort — only leave it to the schema default (10) if the task is genuinely trivial. Otherwise scale it up accordingly (up to a max of 150). This ensures gamification is meaningful and fair.`;
 
 // ----- 1. GET (read-only — safe to call without confirmation) -----
 server.registerTool(
