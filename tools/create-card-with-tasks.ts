@@ -73,7 +73,7 @@ export async function createCardWithTasks(params: CreateCardWithTasksParams) {
         const card = await createCard({
             listId,
             name,
-            description: description || "",
+            description,
             position,
             baseXp,
             softDueDate,
