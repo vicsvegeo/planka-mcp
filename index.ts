@@ -282,7 +282,10 @@ server.registerTool(
         .enum(["private", "shared"])
         .optional()
         .describe("For resourceType project: private (default) or shared"),
-      description: z.string().optional(),
+      description: z
+        .string()
+        .optional()
+        .describe("Description text, for project/board/list/card"),
       position: z.number().optional(),
       dueDate: z.string().optional().describe("ISO date, for cards"),
       color: z.string().optional().describe("Label or list color"),
@@ -338,7 +341,7 @@ server.registerTool(
           z.object({
             listId: z.string(),
             name: z.string(),
-            description: z.string().optional(),
+            description: z.string().optional().describe("Card description"),
             position: z.number().optional(),
             dueDate: z.string().optional(),
             baseXp: z.number().int().positive().optional(),
@@ -523,7 +526,10 @@ server.registerTool(
           "ID of the item to update (omit when using taskBatch/cardBatch)",
         ),
       name: z.string().optional(),
-      description: z.string().optional(),
+      description: z
+        .string()
+        .optional()
+        .describe("Description text, for project/board/list/card"),
       position: z.number().optional(),
       dueDate: z.string().optional(),
       isCompleted: z.boolean().optional(),
@@ -580,7 +586,7 @@ server.registerTool(
           z.object({
             id: z.string(),
             name: z.string().optional(),
-            description: z.string().optional(),
+            description: z.string().optional().describe("Card description"),
             position: z.number().optional(),
             dueDate: z.string().optional(),
             isCompleted: z.boolean().optional(),
