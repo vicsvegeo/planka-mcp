@@ -340,6 +340,7 @@ server.registerTool(
             name: z.string(),
             description: z.string().optional(),
             position: z.number().optional(),
+            dueDate: z.string().optional(),
             baseXp: z.number().int().positive().optional(),
             softDueDate: z.string().optional(),
           }),
@@ -412,6 +413,7 @@ server.registerTool(
             name: args.name!,
             description: args.description,
             position: args.position ?? 65535,
+            dueDate: args.dueDate,
             baseXp: args.baseXp,
             softDueDate: args.softDueDate,
           });
@@ -428,6 +430,7 @@ server.registerTool(
           tasks: args.tasks,
           comment: args.comment,
           position: args.position ?? 65535,
+          dueDate: args.dueDate,
           baseXp: args.baseXp,
           softDueDate: args.softDueDate,
         });

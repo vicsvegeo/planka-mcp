@@ -23,6 +23,7 @@ export const CreateCardSchema = z.object({
   name: z.string().describe("Card name"),
   description: z.string().optional().describe("Card description"),
   position: z.number().optional().describe("Card position (default: 65535)"),
+  dueDate: z.string().optional().describe("Card due date (ISO format)"),
   baseXp: z
     .number()
     .int()
@@ -223,6 +224,7 @@ export async function createCard(options: CreateCardOptions) {
         name: options.name,
         description: options.description,
         position: options.position,
+        dueDate: options.dueDate,
         // Planka requires every card to be created with an XP value; default
         // to 10 so callers that don't care about gamification aren't forced
         // to think about it.
