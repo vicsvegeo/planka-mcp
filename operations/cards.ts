@@ -257,7 +257,10 @@ export async function batchCreateCards(options: BatchCreateCardsOptions) {
     const card = options.cards[i];
 
     try {
-      const result = await createCard(card);
+      const result = await createCard({
+        ...card,
+        position: card.position ?? 65535,
+      });
       results.push({ success: true, result });
       successes.push(result);
     } catch (error) {
