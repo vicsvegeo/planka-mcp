@@ -147,36 +147,20 @@ async function createDefaultLists(boardId: string) {
 }
 
 /**
- * Creates default labels for a new board
+ * Creates the default type labels for a new board. The names double as branch
+ * prefixes in the Planka fork ("Create branch" -> <type>/BLAPP-<n>-<slug>);
+ * docs, ci and design deliberately fall under chore.
  * @param boardId The ID of the board to create labels for
  */
 async function createDefaultLabels(boardId: string) {
   try {
-    // Priority labels
-    const priorityLabels = [
-      { name: "P0: Critical", color: "berry-red", position: 65535 },
-      { name: "P1: High", color: "red-burgundy", position: 131070 },
-      { name: "P2: Medium", color: "pumpkin-orange", position: 196605 },
-      { name: "P3: Low", color: "sunny-grass", position: 262140 },
+    const defaultLabels = [
+      { name: "feat", color: "lagoon-blue", position: 65536 },
+      { name: "fix", color: "berry-red", position: 131072 },
+      { name: "chore", color: "muddy-grey", position: 196608 },
+      { name: "refactor", color: "lilac-eyes", position: 262144 },
+      { name: "spike", color: "egg-yellow", position: 327680 },
     ];
-
-    // Type labels
-    const typeLabels = [
-      { name: "Bug", color: "coral-green", position: 327675 },
-      { name: "Feature", color: "lagoon-blue", position: 393210 },
-      { name: "Enhancement", color: "bright-moss", position: 458745 },
-      { name: "Documentation", color: "light-orange", position: 524280 },
-    ];
-
-    // Status labels
-    const statusLabels = [
-      { name: "Blocked", color: "midnight-blue", position: 589815 },
-      { name: "Needs Info", color: "desert-sand", position: 655350 },
-      { name: "Ready", color: "egg-yellow", position: 720885 },
-    ];
-
-    // Combine all labels
-    const defaultLabels = [...priorityLabels, ...typeLabels, ...statusLabels];
 
     for (const label of defaultLabels) {
       await labels.createLabel({
