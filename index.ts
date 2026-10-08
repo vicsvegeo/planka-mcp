@@ -67,6 +67,16 @@ function err(action: string, resourceType: string, missing: string): never {
   );
 }
 
+// Card IDs are 19-digit snowflakes, so anything short like "345", "#345" or
+// "BLAPP-345" can only be a ticket reference. Returns null for real card IDs.
+function parseTicketRef(value: string | number | undefined): number | null {
+  if (value === undefined) return null;
+  const match = String(value)
+    .trim()
+    .match(/^(?:[A-Za-z][A-Za-z0-9]*-|#)?(\d{1,9})$/);
+  return match ? Number(match[1]) : null;
+}
+
 // ----- PERSONAL CONVENTIONS -----
 // Board-building conventions used across projects, surfaced only when the
 // Planka tools are actually loaded (not injected into general chat context).
@@ -87,19 +97,24 @@ server.registerTool(
       "a user's gamification stats (XP, level, badges). Cards carry gamification " +
       "fields (baseXp, softDueDate, bonusAwarded) alongside their normal fields. " +
       "Pass `id` to fetch a single item, or omit it (with the relevant parent " +
-      "id) to list items. For resourceType card or card_details you can pass " +
-      "`ticketNumber` (e.g. 345, the number in ticket keys like BLAPP-345) " +
-      "instead of `id`.",
+      "id) to list items. When the user references a ticket like BLAPP-345 or " +
+      "#345, call resourceType card_details (or card) with `ticketNumber` set " +
+      "to it directly — no need to look up the card ID first.",
     inputSchema: {
       resourceType: resourceTypeEnum,
-      id: z.string().optional().describe("ID of the single item to fetch"),
-      ticketNumber: z
-        .number()
-        .int()
-        .positive()
+      id: z
+        .string()
         .optional()
         .describe(
-          "For card / card_details: fetch the card by its ticket number (e.g. 345) instead of `id`",
+          "ID of the single item to fetch (Planka IDs are long numeric strings). " +
+            "For card / card_details a ticket reference like 345 or BLAPP-345 also works here",
+        ),
+      ticketNumber: z
+        .union([z.number().int().positive(), z.string()])
+        .optional()
+        .describe(
+          "For card / card_details: the ticket the user referenced, e.g. 345 or " +
+            '"BLAPP-345". Use this instead of `id` when the user names a ticket',
         ),
       projectId: z
         .string()
@@ -149,6 +164,12 @@ server.registerTool(
   async (args) => {
     let result;
     const { resourceType, id } = args;
+    const ticketNumber =
+      parseTicketRef(args.ticketNumber) ?? parseTicketRef(id) ?? undefined;
+    if (args.ticketNumber !== undefined && ticketNumber === undefined)
+      throw new Error(
+        `Invalid ticketNumber "${args.ticketNumber}" — expected e.g. 345 or BLAPP-345`,
+      );
 
     switch (resourceType) {
       case "project":
@@ -180,10 +201,10 @@ server.registerTool(
         break;
 
       case "card":
-        if (id) {
+        if (ticketNumber) {
+          result = await cards.getCardByTicketNumber(ticketNumber);
+        } else if (id) {
           result = await cards.getCard(id);
-        } else if (args.ticketNumber) {
-          result = await cards.getCardByTicketNumber(args.ticketNumber);
         } else {
           if (!args.listId) err("list", resourceType, "listId");
           result = await cards.getCards(args.listId!);
@@ -245,12 +266,11 @@ server.registerTool(
         break;
 
       case "card_details":
-        if (!id && !args.ticketNumber)
+        if (!id && !ticketNumber)
           err("get", resourceType, "id (card ID) or ticketNumber");
-        result = await getCardDetails({
-          cardId: id,
-          ticketNumber: args.ticketNumber,
-        });
+        result = await getCardDetails(
+          ticketNumber ? { ticketNumber } : { cardId: id },
+        );
         break;
 
       case "gamification_stats":
