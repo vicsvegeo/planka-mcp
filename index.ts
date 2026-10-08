@@ -87,10 +87,20 @@ server.registerTool(
       "a user's gamification stats (XP, level, badges). Cards carry gamification " +
       "fields (baseXp, softDueDate, bonusAwarded) alongside their normal fields. " +
       "Pass `id` to fetch a single item, or omit it (with the relevant parent " +
-      "id) to list items.",
+      "id) to list items. For resourceType card or card_details you can pass " +
+      "`ticketNumber` (e.g. 345, the number in ticket keys like BLAPP-345) " +
+      "instead of `id`.",
     inputSchema: {
       resourceType: resourceTypeEnum,
       id: z.string().optional().describe("ID of the single item to fetch"),
+      ticketNumber: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe(
+          "For card / card_details: fetch the card by its ticket number (e.g. 345) instead of `id`",
+        ),
       projectId: z
         .string()
         .optional()
@@ -172,6 +182,8 @@ server.registerTool(
       case "card":
         if (id) {
           result = await cards.getCard(id);
+        } else if (args.ticketNumber) {
+          result = await cards.getCardByTicketNumber(args.ticketNumber);
         } else {
           if (!args.listId) err("list", resourceType, "listId");
           result = await cards.getCards(args.listId!);
@@ -233,8 +245,12 @@ server.registerTool(
         break;
 
       case "card_details":
-        if (!id) err("get", resourceType, "id (card ID)");
-        result = await getCardDetails({ cardId: id! });
+        if (!id && !args.ticketNumber)
+          err("get", resourceType, "id (card ID) or ticketNumber");
+        result = await getCardDetails({
+          cardId: id,
+          ticketNumber: args.ticketNumber,
+        });
         break;
 
       case "gamification_stats":

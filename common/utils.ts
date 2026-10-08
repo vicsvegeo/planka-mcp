@@ -115,7 +115,9 @@ export async function plankaRequest(
     return responseBody;
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to make Planka request to ${url}: ${errorMessage}`);
+    throw new Error(`Failed to make Planka request to ${url}: ${errorMessage}`, {
+      cause: error,
+    });
   }
 }
 

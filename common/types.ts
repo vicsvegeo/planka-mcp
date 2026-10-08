@@ -54,7 +54,9 @@ export const PlankaStopwatchSchema = z.object({
 
 export const PlankaCardSchema = z.object({
   id: z.string(),
+  boardId: z.string().optional(),
   listId: z.string(),
+  ticketNumber: z.number().nullable().optional(),
   name: z.string(),
   description: z.string().nullable(),
   position: z.number(),

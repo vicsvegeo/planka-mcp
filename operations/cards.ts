@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { plankaRequest } from "../common/utils.js";
+import { PlankaResourceNotFoundError } from "../common/errors.js";
 import { PlankaCardSchema, PlankaStopwatchSchema } from "../common/types.js";
 
 // Schema definitions
@@ -365,6 +366,30 @@ export async function getCard(id: string) {
   const response = await plankaRequest(`/api/cards/${id}`);
   const parsedResponse = CardResponseSchema.parse(response);
   return parsedResponse.item;
+}
+
+/**
+ * Retrieves a specific card by its instance-wide ticket number (e.g. 345)
+ *
+ * @param {number} ticketNumber - The ticket number of the card to retrieve
+ * @returns {Promise<object>} The requested card
+ */
+export async function getCardByTicketNumber(ticketNumber: number) {
+  try {
+    const response = await plankaRequest(`/api/cards/ticket/${ticketNumber}`);
+    const parsedResponse = CardResponseSchema.parse(response);
+    return parsedResponse.item;
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.cause instanceof PlankaResourceNotFoundError
+    ) {
+      throw new Error(
+        `No card found with ticket number ${ticketNumber} (or you don't have access to it)`,
+      );
+    }
+    throw error;
+  }
 }
 
 /**

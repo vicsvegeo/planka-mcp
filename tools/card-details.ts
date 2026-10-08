@@ -1,23 +1,29 @@
 import { z } from "zod";
-import { getCard } from "../operations/cards.js";
+import { getCard, getCardByTicketNumber } from "../operations/cards.js";
 import { getTasks } from "../operations/tasks.js";
 import { getComments } from "../operations/comments.js";
 import { getLabels } from "../operations/labels.js";
-import { getProjects } from "../operations/projects.js";
-import { getBoards } from "../operations/boards.js";
-import { getLists } from "../operations/lists.js";
 
 export const getCardDetailsSchema = z.object({
-  cardId: z.string().describe("The ID of the card to get details for"),
+  cardId: z
+    .string()
+    .optional()
+    .describe("The ID of the card to get details for"),
+  ticketNumber: z
+    .number()
+    .optional()
+    .describe("The ticket number of the card, used when cardId is not given"),
 });
 
 export type GetCardDetailsParams = z.infer<typeof getCardDetailsSchema>;
 
 export async function getCardDetails(params: GetCardDetailsParams) {
-  const { cardId } = params;
+  const { cardId, ticketNumber } = params;
 
   try {
-    const card = await getCard(cardId);
+    const card = cardId
+      ? await getCard(cardId)
+      : await getCardByTicketNumber(ticketNumber!);
 
     if (!card) {
       throw new Error(`Card with ID ${cardId} not found`);
@@ -26,32 +32,10 @@ export async function getCardDetails(params: GetCardDetailsParams) {
     const tasks = await getTasks(card.id);
     const comments = await getComments(card.id);
 
-    let boardId = null;
-
-    const projectsResponse = await getProjects(1, 100);
-    const projects = projectsResponse.items;
-
-    for (const project of projects) {
-      if (boardId) break;
-
-      const boards = await getBoards(project.id);
-
-      for (const board of boards) {
-        if (boardId) break;
-
-        const lists = await getLists(board.id);
-
-        const matchingList = lists.find((list: any) => list.id === card.listId);
-
-        if (matchingList) {
-          boardId = board.id;
-          break;
-        }
-      }
-    }
+    const { boardId } = card;
 
     if (!boardId) {
-      throw new Error(`Could not determine board ID for card ${cardId}`);
+      throw new Error(`Could not determine board ID for card ${card.id}`);
     }
 
     const labels = await getLabels(boardId);
