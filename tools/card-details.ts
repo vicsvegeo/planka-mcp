@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getCard, getCardByTicketNumber } from "../operations/cards.js";
+import { getCard, getCardByTicketKey } from "../operations/cards.js";
 import { getTasks } from "../operations/tasks.js";
 import { getComments } from "../operations/comments.js";
 import { getLabels } from "../operations/labels.js";
@@ -9,21 +9,23 @@ export const getCardDetailsSchema = z.object({
     .string()
     .optional()
     .describe("The ID of the card to get details for"),
-  ticketNumber: z
-    .number()
+  ticketKey: z
+    .string()
     .optional()
-    .describe("The ticket number of the card, used when cardId is not given"),
+    .describe(
+      'The ticket key of the card (e.g. "SMTH-12", or "345" for BLAPP-345), used when cardId is not given',
+    ),
 });
 
 export type GetCardDetailsParams = z.infer<typeof getCardDetailsSchema>;
 
 export async function getCardDetails(params: GetCardDetailsParams) {
-  const { cardId, ticketNumber } = params;
+  const { cardId, ticketKey } = params;
 
   try {
     const card = cardId
       ? await getCard(cardId)
-      : await getCardByTicketNumber(ticketNumber!);
+      : await getCardByTicketKey(ticketKey!);
 
     if (!card) {
       throw new Error(`Card with ID ${cardId} not found`);

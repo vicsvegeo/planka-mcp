@@ -67,14 +67,19 @@ function err(action: string, resourceType: string, missing: string): never {
   );
 }
 
-// Card IDs are 19-digit snowflakes, so anything short like "345", "#345" or
-// "BLAPP-345" can only be a ticket reference. Returns null for real card IDs.
-function parseTicketRef(value: string | number | undefined): number | null {
+// Card IDs are 19-digit snowflakes, so anything short like "345", "#345",
+// "BLAPP-345" or "SMTH-12" can only be a ticket reference. Projects can have
+// their own prefix with its own counter (SMTH-12 and BLAPP-12 are different
+// cards), so the prefix is kept: returns the key to look up ("SMTH-12", or a
+// bare "345" for BLAPP), or null for real card IDs.
+function parseTicketRef(value: string | number | undefined): string | null {
   if (value === undefined) return null;
   const match = String(value)
     .trim()
-    .match(/^(?:[A-Za-z][A-Za-z0-9]*-|#)?(\d{1,9})$/);
-  return match ? Number(match[1]) : null;
+    .match(/^(?:([A-Za-z]{2,10})-|#)?0*([1-9]\d{0,8})$/);
+  if (!match) return null;
+  const [, prefix, number] = match;
+  return prefix ? `${prefix.toUpperCase()}-${number}` : number;
 }
 
 // ----- PERSONAL CONVENTIONS -----
@@ -97,9 +102,13 @@ server.registerTool(
       "a user's gamification stats (XP, level, badges). Cards carry gamification " +
       "fields (baseXp, softDueDate, bonusAwarded) alongside their normal fields. " +
       "Pass `id` to fetch a single item, or omit it (with the relevant parent " +
-      "id) to list items. When the user references a ticket like BLAPP-345 or " +
-      "#345, call resourceType card_details (or card) with `ticketNumber` set " +
-      "to it directly — no need to look up the card ID first.",
+      "id) to list items. When the user references a ticket like BLAPP-345, " +
+      "SMTH-12 or #345, call resourceType card_details (or card) with " +
+      "`ticketNumber` set to it directly — no need to look up the card ID " +
+      "first. Ticket keys are <prefix>-<number>: BLAPP by default, but a " +
+      "project can have its own prefix with its own numbering, so always pass " +
+      "the full key the user gave (SMTH-12 and BLAPP-12 are different cards). " +
+      "A bare number means BLAPP. Cards include their `ticketKey`.",
     inputSchema: {
       resourceType: resourceTypeEnum,
       id: z
@@ -107,14 +116,15 @@ server.registerTool(
         .optional()
         .describe(
           "ID of the single item to fetch (Planka IDs are long numeric strings). " +
-            "For card / card_details a ticket reference like 345 or BLAPP-345 also works here",
+            "For card / card_details a ticket reference like 345, BLAPP-345 or SMTH-12 also works here",
         ),
       ticketNumber: z
         .union([z.number().int().positive(), z.string()])
         .optional()
         .describe(
-          "For card / card_details: the ticket the user referenced, e.g. 345 or " +
-            '"BLAPP-345". Use this instead of `id` when the user names a ticket',
+          "For card / card_details: the ticket the user referenced, with its " +
+            'prefix, e.g. "SMTH-12", "BLAPP-345" or 345 (a bare number means ' +
+            "BLAPP). Use this instead of `id` when the user names a ticket",
         ),
       projectId: z
         .string()
@@ -164,11 +174,11 @@ server.registerTool(
   async (args) => {
     let result;
     const { resourceType, id } = args;
-    const ticketNumber =
+    const ticketKey =
       parseTicketRef(args.ticketNumber) ?? parseTicketRef(id) ?? undefined;
-    if (args.ticketNumber !== undefined && ticketNumber === undefined)
+    if (args.ticketNumber !== undefined && ticketKey === undefined)
       throw new Error(
-        `Invalid ticketNumber "${args.ticketNumber}" — expected e.g. 345 or BLAPP-345`,
+        `Invalid ticketNumber "${args.ticketNumber}" — expected e.g. 345, BLAPP-345 or SMTH-12`,
       );
 
     switch (resourceType) {
@@ -201,8 +211,8 @@ server.registerTool(
         break;
 
       case "card":
-        if (ticketNumber) {
-          result = await cards.getCardByTicketNumber(ticketNumber);
+        if (ticketKey) {
+          result = await cards.getCardByTicketKey(ticketKey);
         } else if (id) {
           result = await cards.getCard(id);
         } else {
@@ -266,10 +276,10 @@ server.registerTool(
         break;
 
       case "card_details":
-        if (!id && !ticketNumber)
+        if (!id && !ticketKey)
           err("get", resourceType, "id (card ID) or ticketNumber");
         result = await getCardDetails(
-          ticketNumber ? { ticketNumber } : { cardId: id },
+          ticketKey ? { ticketKey } : { cardId: id },
         );
         break;
 

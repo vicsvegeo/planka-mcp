@@ -52,24 +52,36 @@ export const PlankaStopwatchSchema = z.object({
   total: z.number(),
 });
 
-export const PlankaCardSchema = z.object({
-  id: z.string(),
-  boardId: z.string().optional(),
-  listId: z.string(),
-  ticketNumber: z.number().nullable().optional(),
-  name: z.string(),
-  description: z.string().nullable(),
-  position: z.number(),
-  dueDate: z.string().nullable(),
-  isCompleted: z.boolean().optional(),
-  stopwatch: PlankaStopwatchSchema.nullable().optional(),
-  // Gamification (XP system)
-  baseXp: z.number().nullable().optional(),
-  softDueDate: z.string().nullable().optional(),
-  bonusAwarded: z.boolean().optional(),
-  createdAt: z.string(),
-  updatedAt: z.string().nullable(),
-});
+export const PlankaCardSchema = z
+  .object({
+    id: z.string(),
+    boardId: z.string().optional(),
+    listId: z.string(),
+    // The card's key is <ticketPrefix>-<ticketNumber>, e.g. SMTH-12. Cards from
+    // before per-project prefixes (or an older server) have no prefix: BLAPP.
+    ticketPrefix: z.string().nullable().optional(),
+    ticketNumber: z.number().nullable().optional(),
+    name: z.string(),
+    description: z.string().nullable(),
+    position: z.number(),
+    dueDate: z.string().nullable(),
+    isCompleted: z.boolean().optional(),
+    stopwatch: PlankaStopwatchSchema.nullable().optional(),
+    // Gamification (XP system)
+    baseXp: z.number().nullable().optional(),
+    softDueDate: z.string().nullable().optional(),
+    bonusAwarded: z.boolean().optional(),
+    createdAt: z.string(),
+    updatedAt: z.string().nullable(),
+  })
+  .transform((card) => ({
+    ...card,
+    // Ready-made key for the chatbot to show and quote back, e.g. "SMTH-12".
+    ticketKey:
+      card.ticketNumber == null
+        ? null
+        : `${card.ticketPrefix || "BLAPP"}-${card.ticketNumber}`,
+  }));
 
 // A single badge, as returned alongside a user's gamification stats.
 // `unlockedAt` is null for badges the user hasn't earned yet.

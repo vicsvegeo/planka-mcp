@@ -344,7 +344,15 @@ export async function getCards(listId: string) {
       );
 
       if (matchingCards.length > 0) {
-        return matchingCards;
+        // Raw board cards skip PlankaCardSchema, so add the same ticketKey here
+        // (also covers board_summary, which lists cards through this).
+        return matchingCards.map((card: any) => ({
+          ...card,
+          ticketKey:
+            card.ticketNumber == null
+              ? null
+              : `${card.ticketPrefix || "BLAPP"}-${card.ticketNumber}`,
+        }));
       }
     }
 
@@ -369,14 +377,17 @@ export async function getCard(id: string) {
 }
 
 /**
- * Retrieves a specific card by its instance-wide ticket number (e.g. 345)
+ * Retrieves a specific card by its ticket key (e.g. "SMTH-12" or "BLAPP-345").
+ * A bare number ("345") means a BLAPP key.
  *
- * @param {number} ticketNumber - The ticket number of the card to retrieve
+ * @param {string} ticketKey - The ticket key of the card to retrieve
  * @returns {Promise<object>} The requested card
  */
-export async function getCardByTicketNumber(ticketNumber: number) {
+export async function getCardByTicketKey(ticketKey: string) {
   try {
-    const response = await plankaRequest(`/api/cards/ticket/${ticketNumber}`);
+    const response = await plankaRequest(
+      `/api/cards/ticket/${encodeURIComponent(ticketKey)}`,
+    );
     const parsedResponse = CardResponseSchema.parse(response);
     return parsedResponse.item;
   } catch (error) {
@@ -385,7 +396,7 @@ export async function getCardByTicketNumber(ticketNumber: number) {
       error.cause instanceof PlankaResourceNotFoundError
     ) {
       throw new Error(
-        `No card found with ticket number ${ticketNumber} (or you don't have access to it)`,
+        `No card found with ticket ${ticketKey} (or you don't have access to it)`,
       );
     }
     throw error;
